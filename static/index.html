@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>nmdc-orcid-creditor</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png" />
+    <meta
+      name="description"
+      content="Web app NMDC team members use to credit ambassadors and champions via ORCID"
+    />
+    <meta name="author" content="National Microbiome Data Collaborative" />
+  </head>
+  <body>
+    <h1>nmdc-orcid-creditor</h1>
+    <div id="app"></div>
+
+    <script>
+      // Fetch data from an API endpoint.
+      fetch("/")
+        .then((resp) => resp.json())
+        .then(({ greeting }) => {
+          document.getElementById("app").innerText = greeting;
+        });
+    </script>
+  </body>
+</html>

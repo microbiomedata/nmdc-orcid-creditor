@@ -6,7 +6,9 @@ Web app NMDC team members use to credit ambassadors and champions via ORCID
 
 - Install dependencies: `$ poetry install`
 - Run tests: `$ poetry run pytest`
-- Format code: `$ poetry run black .`
+- Format Python code: `$ poetry run black .`
+- Format HTML files (if you have [Node.js](https://nodejs.org/en/download/prebuilt-installer) installed):
+  `$ npx prettier --write static/*.html`
 - Run app in development mode: `$ poetry run fastapi dev nmdc_orcid_creditor/main.py`
 
 ## Journal
