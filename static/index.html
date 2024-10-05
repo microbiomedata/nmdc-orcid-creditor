@@ -12,14 +12,20 @@
   </head>
   <body>
     <h1>nmdc-orcid-creditor</h1>
-    <div id="app"></div>
+    <div id="greeting"></div>
+    <div id="data"></div>
 
     <script>
       // Fetch data from an API endpoint.
       fetch("/")
         .then((resp) => resp.json())
         .then(({ greeting }) => {
-          document.getElementById("app").innerText = greeting;
+          document.getElementById("greeting").innerText = greeting;
+        });
+      fetch("/data")
+        .then((resp) => resp.json())
+        .then(({ data }) => {
+          document.getElementById("data").innerText = data;
         });
     </script>
   </body>

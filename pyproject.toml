@@ -12,6 +12,9 @@ keywords = ["orcid", "credit"]
 [tool.poetry.dependencies]
 python = "^3.10"
 fastapi = { extras = ["standard"], version = "^0.115.0" }
+# We use `pydantic-settings` to access environment variables.
+# Docs: https://fastapi.tiangolo.com/advanced/settings/#pydantic-settings
+pydantic-settings = "^2.5.2"
 
 [tool.poetry.group.dev.dependencies]
 # We use `black` for code formatting.
