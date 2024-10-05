@@ -29,7 +29,7 @@ httpx = "^0.27.2"
 # Make it so that, when someone runs `$ poetry run pytest`, in addition to running the tests, it
 # also (via the `pytest-cov` plugin) measures test coverage of the source code directory.
 # Reference: https://pytest-cov.readthedocs.io/en/latest/config.html#configuration
-addopts = "--cov=refscan"
+addopts = "--cov=nmdc_orcid_creditor"
 
 [tool.black]
 # Make it so that, when someone runs `$ poetry run black`, these default CLI options are used.
