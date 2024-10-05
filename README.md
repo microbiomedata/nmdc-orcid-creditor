@@ -4,7 +4,7 @@ Web app NMDC team members use to credit ambassadors and champions via ORCID
 
 ## Development
 
-- Create `.env` file (if not already done): `$ cp .env.example .env`
+- Create and customize `.env` file (if not already done): `$ cp .env.example .env`
 - Install dependencies: `$ poetry install`
 - Run tests: `$ poetry run pytest`
 - Format Python code: `$ poetry run black .`

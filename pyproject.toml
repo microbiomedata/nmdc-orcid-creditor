@@ -15,6 +15,12 @@ fastapi = { extras = ["standard"], version = "^0.115.0" }
 # We use `pydantic-settings` to access environment variables.
 # Docs: https://fastapi.tiangolo.com/advanced/settings/#pydantic-settings
 pydantic-settings = "^2.5.2"
+# We use `authlib` to facilitate OAuth transactions between FastAPI and ORCID.
+# Docs: https://docs.authlib.org/en/latest/client/fastapi.html
+authlib = "^1.3.2"
+# The `itsdangerous` package is required by the `SessionMiddleware` class.
+# Reference: https://docs.authlib.org/en/latest/client/starlette.html
+itsdangerous = "^2.2.0"
 
 [tool.poetry.group.dev.dependencies]
 # We use `black` for code formatting.
