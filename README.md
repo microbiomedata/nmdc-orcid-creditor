@@ -2,6 +2,12 @@
 
 Web app NMDC team members use to credit ambassadors and champions via ORCID
 
+## File tree
+
+- `nmdc-orcid-creditor-proxy`: Google Apps Script
+- `nmdc_orcid_creditor`: FastAPI app
+- `static`: Static files served by the FastAPI app
+
 ## Development
 
 - Create and customize `.env` file (if not already done): `$ cp .env.example .env`
