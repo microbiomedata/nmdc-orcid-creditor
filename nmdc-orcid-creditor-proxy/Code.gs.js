@@ -47,26 +47,22 @@ function getCreditsByOrcidId(orcidId) {
  * Reference: https://developers.google.com/apps-script/guides/web
  */
 function doGet(event) {
-  let responsePayload = {};
-
   // Get the request query parameters as an object.
   const queryParams = event.parameter;
 
   // Abort if either no shared secret was specified or it does not match ours.
   const sharedSecret = queryParams["shared_secret"];
   if (sharedSecret !== CONFIG.SHARED_SECRET) {
-    responsePayload = { error: "Forbidden. Incorrect shared_secret." };
     return ContentService.createTextOutput(
-      JSON.stringify(responsePayload),
+      JSON.stringify({ error: "Forbidden. Incorrect shared_secret." }),
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
   // Abort if either no ORCID ID was specified or its format is invalid.
   const orcidId = queryParams["orcid_id"];
   if (typeof orcidId !== "string" || orcidRegex.test(orcidId) !== true) {
-    responsePayload = { error: "Bad request. Invalid orcid_id." };
     return ContentService.createTextOutput(
-      JSON.stringify(responsePayload),
+      JSON.stringify({ error: "Bad request. Invalid orcid_id." }),
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
