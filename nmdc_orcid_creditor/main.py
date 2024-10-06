@@ -56,7 +56,7 @@ def get_root(request: Request):
     r"""Displays a login link"""
 
     login_uri = request.url_for("get_redirect_to_orcid_login_page")
-    return HTMLResponse(f"<p>Log in <a href=\"{login_uri}\">here</a></p>")
+    return HTMLResponse(f'<p>Log in <a href="{login_uri}">here</a></p>')
 
 
 @app.get("/redirect-to-orcid-login-page")
