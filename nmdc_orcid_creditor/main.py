@@ -2,6 +2,7 @@ import logging
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from starlette.responses import HTMLResponse
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth, OAuthError
@@ -50,13 +51,20 @@ app.add_middleware(SessionMiddleware, secret_key=cfg.SERVER_SESSION_SECRET_KEY)
 # Reference: https://fastapi.tiangolo.com/tutorial/static-files/
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Designate a directory that will store template files.
+# Reference: https://fastapi.tiangolo.com/advanced/templates/#using-jinja2templates
+templates = Jinja2Templates(directory="nmdc_orcid_creditor/templates")
 
-@app.get("/")
+
+@app.get("/", response_class=HTMLResponse)
 def get_root(request: Request):
-    r"""Displays a login link"""
+    r"""Displays a web page containing a login link"""
 
     login_uri = request.url_for("get_redirect_to_orcid_login_page")
-    return HTMLResponse(f'<p>Log in <a href="{login_uri}">here</a></p>')
+    template_response = templates.TemplateResponse(
+        request=request, name="index.jinja", context={"login_uri": login_uri}
+    )
+    return template_response
 
 
 @app.get("/redirect-to-orcid-login-page")

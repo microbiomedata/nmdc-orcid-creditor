@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>nmdc-orcid-creditor</title>
+        <link rel="icon"
+              type="image/png"
+              href="{{ url_for('static', path='/favicon.png') }}" />
+        <meta name="description"
+              content="Web app NMDC team members use to credit ambassadors and champions via ORCID" />
+        <meta name="author" content="National Microbiome Data Collaborative" />
+        <meta name="keywords" content="orcid,credit,nmdc,champion,ambassador" />
+    </head>
+    <body>
+        <h1>nmdc-orcid-creditor</h1>
+        <p>
+            Log in <a href="{{ url_for("get_redirect_to_orcid_login_page") }}">here</a>
+        </p>
+    </body>
+</html>
