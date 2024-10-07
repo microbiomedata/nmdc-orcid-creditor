@@ -1,0 +1,49 @@
+{% extends "base.html.jinja" %}
+{% block body %}
+    <h1>Credits</h1>
+    <p>ORCID ID: {{ orcid_id }}</p>
+    <div>
+        <table>
+            <thead>
+                <tr>
+                    <td>Credit</td>
+                    <td>Notified at</td>
+                    <td>Claimed at</td>
+                    <td>Actions</td>
+                </tr>
+            </thead>
+            <tbody>
+                {% for credit in credits %}
+                    <tr>
+                        <td>{{ credit["column.CREDIT_TYPE"] }}</td>
+                        <td data-timestamp="{{ credit["column.NOTIFIED_AT"] }}">{{ credit["column.NOTIFIED_AT"] }}</td>
+                        <td data-timestamp="{{ credit["column.CLAIMED_AT"] }}">{{ credit["column.CLAIMED_AT"] }}</td>
+                        <td>--</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="4">There are no credits associated with this ORCID ID.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <script>
+            /**
+             * Replace the raw timestamps in the table, with timestamp strings in UTC.
+             *
+             * References:
+             * - https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes#javascript_access
+             */
+            (function() {
+                const els = document.querySelectorAll("[data-timestamp]");
+                els.forEach(function(el) {
+                    const timestamp = el.dataset.timestamp.trim();
+                    if (timestamp.length > 0) {
+                        const date = new Date(timestamp);
+                        el.innerText = date.toUTCString();
+                    }
+                });
+            })();
+    </script>
+{% endblock %}

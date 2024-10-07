@@ -10,11 +10,9 @@
               content="Web app NMDC team members use to credit ambassadors and champions via ORCID" />
         <meta name="author" content="National Microbiome Data Collaborative" />
         <meta name="keywords" content="orcid,credit,nmdc,champion,ambassador" />
+        <link rel="stylesheet" href="https://unpkg.com/simpledotcss/simple.min.css">
     </head>
     <body>
-        <h1>Error</h1>
-        <p>
-            {{ error_message }}
-        </p>
+        {% block body %}{% endblock %}
     </body>
 </html>

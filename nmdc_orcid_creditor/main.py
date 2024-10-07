@@ -61,7 +61,7 @@ templates = Jinja2Templates(directory="nmdc_orcid_creditor/templates")
 def get_root(request: Request):
     r"""Displays a web page containing a login link"""
 
-    return templates.TemplateResponse(request=request, name="home.jinja")
+    return templates.TemplateResponse(request=request, name="home.html.jinja")
 
 
 @app.get("/redirect-to-orcid-login-page")
@@ -79,7 +79,7 @@ async def get_exchange_code_for_token(request: Request, code: str):
     try:
         token: dict = await oauth.orcid.authorize_access_token(request)
     except OAuthError as error:
-        return templates.TemplateResponse(request=request, name="error.jinja", context={"error_message": error.error})
+        return templates.TemplateResponse(request=request, name="error.html.jinja", context={"error_message": error.error})
 
     # Get the user's ORCID ID from the ORCID access token.
     orcid_id = token["orcid"]
@@ -97,4 +97,4 @@ async def get_exchange_code_for_token(request: Request, code: str):
         "credits": res_json["credits"],
     }
 
-    return templates.TemplateResponse(request=request, name="credits.jinja", context=context)
+    return templates.TemplateResponse(request=request, name="credits.html.jinja", context=context)
