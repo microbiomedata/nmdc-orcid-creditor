@@ -24,6 +24,11 @@ class Config(BaseSettings):
     ORCID_CLIENT_ID: str = ""
     ORCID_CLIENT_SECRET: str = ""
 
+    # URL and shared secret used to access the NMDC ORCID Creditor Proxy,
+    # which is a web application running on the Google Apps Script platform.
+    NMDC_ORCID_CREDITOR_PROXY_URL: str = ""  # ends with "/exec"
+    NMDC_ORCID_CREDITOR_PROXY_SHARED_SECRET: str = ""
+
     # Configure the class to read environment variable definitions from a `.env` file,
     # if such a file is present.
     # Reference: https://fastapi.tiangolo.com/advanced/settings/#reading-a-env-file

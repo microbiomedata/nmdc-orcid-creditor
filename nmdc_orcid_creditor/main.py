@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.responses import HTMLResponse
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth, OAuthError
+import httpx
 
 from nmdc_orcid_creditor.config import cfg
 
@@ -60,16 +61,12 @@ templates = Jinja2Templates(directory="nmdc_orcid_creditor/templates")
 def get_root(request: Request):
     r"""Displays a web page containing a login link"""
 
-    login_uri = request.url_for("get_redirect_to_orcid_login_page")
-    template_response = templates.TemplateResponse(
-        request=request, name="index.jinja", context={"login_uri": login_uri}
-    )
-    return template_response
+    return templates.TemplateResponse(request=request, name="home.jinja")
 
 
 @app.get("/redirect-to-orcid-login-page")
 async def get_redirect_to_orcid_login_page(request: Request):
-    r"""Initiates the ORCID login flow"""
+    r"""Redirects the client to ORCID, initiating the ORCID login flow"""
 
     redirect_uri = request.url_for("get_exchange_code_for_token")
     return await oauth.orcid.authorize_redirect(request, redirect_uri=redirect_uri)
@@ -81,8 +78,23 @@ async def get_exchange_code_for_token(request: Request, code: str):
 
     try:
         token: dict = await oauth.orcid.authorize_access_token(request)
-        response = {"code": code, "token": token}
     except OAuthError as error:
-        response = {"error": error.error}
+        return templates.TemplateResponse(request=request, name="error.jinja", context={"error_message": error.error})
 
-    return response
+    # Get the user's ORCID ID from the ORCID access token.
+    orcid_id = token["orcid"]
+
+    # Get a list of credits available to this ORCID ID.
+    response = httpx.get(
+        cfg.NMDC_ORCID_CREDITOR_PROXY_URL,
+        params={"shared_secret": cfg.NMDC_ORCID_CREDITOR_PROXY_SHARED_SECRET, "orcid_id": orcid_id},
+        follow_redirects=True,
+    )
+    logger.debug(response.url)
+    res_json = response.json()
+    context = {
+        "orcid_id": res_json["orcid_id"],
+        "credits": res_json["credits"],
+    }
+
+    return templates.TemplateResponse(request=request, name="credits.jinja", context=context)

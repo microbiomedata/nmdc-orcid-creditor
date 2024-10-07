@@ -70,6 +70,6 @@ function doGet(event) {
   const credits = getCreditsByOrcidId(orcidId);
 
   return ContentService.createTextOutput(
-    JSON.stringify({ orcidId, credits }),
+    JSON.stringify({ orcid_id: orcidId, credits }),
   ).setMimeType(ContentService.MimeType.JSON);
 }
