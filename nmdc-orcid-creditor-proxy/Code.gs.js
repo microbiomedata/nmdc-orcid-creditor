@@ -105,7 +105,7 @@ function validateSharedSecret(sharedSecret) {
     return sharedSecret;
   } else {
     return ContentService.createTextOutput(
-      JSON.stringify({ error: "Forbidden. Incorrect shared_secret." }),
+      JSON.stringify({ error: "Unauthorized. Invalid shared_secret." }),
     ).setMimeType(ContentService.MimeType.JSON);
   }
 }
