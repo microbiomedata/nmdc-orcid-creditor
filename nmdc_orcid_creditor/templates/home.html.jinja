@@ -1,7 +1,11 @@
 {% extends "base.html.jinja" %}
 {% block body %}
-    <h1>Home</h1>
+    <h1>NMDC ORCID Creditor</h1>
     <p>
-        Log in <a href="{{ url_for("get_redirect_to_orcid_login_page") }}">here</a>
+        Welcome to the NMDC ORCID Creditor, a website NMDC Ambassadors and Champions can use to add
+        items describing their contributions to the NMDC, to their ORCID profiles.
+    </p>
+    <p>
+        <a href="{{ url_for("get_redirect_to_orcid_login_page") }}">Sign in to ORCID</a> to get started.
     </p>
 {% endblock %}
