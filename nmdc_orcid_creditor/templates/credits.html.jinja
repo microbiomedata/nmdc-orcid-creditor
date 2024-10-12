@@ -18,7 +18,14 @@
                         <td>{{ credit["column.CREDIT_TYPE"] }}</td>
                         <td data-timestamp="{{ credit["column.NOTIFIED_AT"] }}">{{ credit["column.NOTIFIED_AT"] }}</td>
                         <td data-timestamp="{{ credit["column.CLAIMED_AT"] }}">{{ credit["column.CLAIMED_AT"] }}</td>
-                        <td>--</td>
+                        <td>
+                            {% if credit["column.CLAIMED_AT"] %}
+                                <span>--</span>
+                            {% else %}
+                                <!-- TODO: Implement the claim flow. -->
+                                <button onclick="alert('Not implemented')">Add to ORCID profile</button>
+                            {% endif %}
+                        </td>
                     </tr>
                 {% else %}
                     <tr>
