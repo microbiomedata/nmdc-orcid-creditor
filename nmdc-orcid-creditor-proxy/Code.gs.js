@@ -42,29 +42,50 @@ function getCreditsByOrcidId(orcidId) {
 }
 
 /**
+ * Sends an error HTTP response if the specified shared secret is incorrect.
+ */
+function validateSharedSecret(sharedSecret) {
+  if (sharedSecret === CONFIG.SHARED_SECRET) {
+    return sharedSecret;
+  } else {
+    return ContentService.createTextOutput(
+      JSON.stringify({ error: "Forbidden. Incorrect shared_secret." }),
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Sends an error HTTP response if the specified ORCID ID is invalid.
+ */
+function validateOrcidId(orcidId) {
+  if (typeof orcidId === "string" && orcidRegex.test(orcidId) === true) {
+    return orcidId;
+  } else {
+    return ContentService.createTextOutput(
+      JSON.stringify({ error: "Bad request. Invalid orcid_id." }),
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Handle incoming POST requests.
+ *
+ * Reference: https://developers.google.com/apps-script/guides/web
+ */
+function doPost(event) {
+  // TODO
+}
+
+/**
  * Handle incoming GET requests.
  *
  * Reference: https://developers.google.com/apps-script/guides/web
  */
 function doGet(event) {
-  // Get the request query parameters as an object.
+  // Extract and validate the query parameters.
   const queryParams = event.parameter;
-
-  // Abort if either no shared secret was specified or it does not match ours.
-  const sharedSecret = queryParams["shared_secret"];
-  if (sharedSecret !== CONFIG.SHARED_SECRET) {
-    return ContentService.createTextOutput(
-      JSON.stringify({ error: "Forbidden. Incorrect shared_secret." }),
-    ).setMimeType(ContentService.MimeType.JSON);
-  }
-
-  // Abort if either no ORCID ID was specified or its format is invalid.
-  const orcidId = queryParams["orcid_id"];
-  if (typeof orcidId !== "string" || orcidRegex.test(orcidId) !== true) {
-    return ContentService.createTextOutput(
-      JSON.stringify({ error: "Bad request. Invalid orcid_id." }),
-    ).setMimeType(ContentService.MimeType.JSON);
-  }
+  const _ = validateSharedSecret(queryParams["shared_secret"]);
+  const orcidId = validateOrcidId(queryParams["orcid_id"]);
 
   // Get the credits associated with the specified ORCID ID.
   const credits = getCreditsByOrcidId(orcidId);
