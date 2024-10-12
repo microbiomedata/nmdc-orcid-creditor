@@ -90,36 +90,33 @@ async def get_exchange_code_for_token(request: Request, code: str):
     # Note: The session is persisted as a signed cookie on the client side. Because it is signed by the server,
     #       the client cannot modify it; although the client can decode and read its contents.
     #
-    if "nmdc-orcid-creditor" not in request.session:
-        request.session["nmdc-orcid-creditor"] = {}
-    request.session["nmdc-orcid-creditor"]["orcid_access_token"] = orcid_access_token
+    request.session["orcid_access_token"] = orcid_access_token
 
     # Now, redirect the client to the "Credits" page.
     return RedirectResponse(url=request.url_for("get_credits_index"))
 
 
 def get_orcid_access_token(request: Request):
-    r"""
-    A dependency that returns the ORCID access token data from the session, if that data is present and
-    the ORCID access token hasn't expired; otherwise, this dependency redirects the client to the home page.
-    """
+    r"""Returns the ORCID access token from the session, if it is present and hasn't expired."""
 
-    if "nmdc-orcid-creditor" in request.session:
-        if "orcid_access_token" in request.session["nmdc-orcid-creditor"]:
-            orcid_access_token_data = request.session["nmdc-orcid-creditor"]["orcid_access_token"]
+    if "orcid_access_token" in request.session:
+        orcid_access_token_data = request.session["orcid_access_token"]
 
-            # Check whether the token expires in the future (not the past or right now).
-            if "expires_at" in orcid_access_token_data:
-                expires_at = orcid_access_token_data["expires_at"]
-                if datetime.fromtimestamp(expires_at) > datetime.now():
-                    return orcid_access_token_data
+        # Check whether the token expires in the future (not the past or present).
+        if "expires_at" in orcid_access_token_data:
+            expires_at = orcid_access_token_data["expires_at"]
+            if datetime.fromtimestamp(expires_at) > datetime.now():
+                return orcid_access_token_data
 
-    return RedirectResponse(url=request.url_for("get_root"))
+    return None
 
 
 @app.get("/credits")
 async def get_credits_index(request: Request, orcid_access_token: dict = Depends(get_orcid_access_token)):
     r"""Displays credits available to the logged-in user."""
+
+    if orcid_access_token is None:
+        return RedirectResponse(url=request.url_for("get_root"))
 
     # Get a list of credits available to this ORCID ID.
     try:
