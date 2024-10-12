@@ -11,8 +11,25 @@
         <meta name="author" content="National Microbiome Data Collaborative" />
         <meta name="keywords" content="orcid,credit,nmdc,champion,ambassador" />
         <link rel="stylesheet" href="https://unpkg.com/simpledotcss/simple.min.css">
+        <style>
+            .navbar {
+                margin: 24px 0;
+                text-align: right;
+            }
+            .navbar a {
+                text-decoration: none;
+            }
+            .navbar a:hover {
+                text-decoration: underline;
+            }
+        </style>
     </head>
     <body>
+        {% if orcid_id %}
+            <div class="navbar">
+                <a href="{{ url_for("logout") }}" title="Sign out">Sign out</a>
+            </div>
+        {% endif %}
         {% block body %}{% endblock %}
     </body>
 </html>

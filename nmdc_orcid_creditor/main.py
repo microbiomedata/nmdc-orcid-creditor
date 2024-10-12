@@ -111,6 +111,14 @@ def get_orcid_access_token(request: Request):
     return None
 
 
+@app.get("/logout")
+async def logout(request: Request):
+    r"""Logs the client out by clearing the session, then redirects the client to the home page."""
+
+    request.session.clear()
+    return RedirectResponse(url=request.url_for("get_root"))
+
+
 @app.get("/credits")
 async def get_credits_index(request: Request, orcid_access_token: dict = Depends(get_orcid_access_token)):
     r"""Displays credits available to the logged-in user."""
