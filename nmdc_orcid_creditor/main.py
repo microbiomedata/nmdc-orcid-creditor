@@ -1,9 +1,10 @@
 import logging
+from datetime import datetime
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth, OAuthError
 import httpx
@@ -77,24 +78,68 @@ async def get_exchange_code_for_token(request: Request, code: str):
     r"""Exchanges an ORCID authorization code for an ORCID access token"""
 
     try:
-        token: dict = await oauth.orcid.authorize_access_token(request)
+        orcid_access_token: dict = await oauth.orcid.authorize_access_token(request)
     except OAuthError as error:
-        return templates.TemplateResponse(request=request, name="error.html.jinja", context={"error_message": error.error})
+        logger.exception(error)
+        return templates.TemplateResponse(
+            request=request, name="error.html.jinja", context={"error_message": "Failed to log in to ORCID."}
+        )
 
-    # Get the user's ORCID ID from the ORCID access token.
-    orcid_id = token["orcid"]
+    # Store the token in the session, overwriting any previous token.
+    #
+    # Note: The session is persisted as a signed cookie on the client side. Because it is signed by the server,
+    #       the client cannot modify it; although the client can decode and read its contents.
+    #
+    if "nmdc-orcid-creditor" not in request.session:
+        request.session["nmdc-orcid-creditor"] = {}
+    request.session["nmdc-orcid-creditor"]["orcid_access_token"] = orcid_access_token
+
+    # Now, redirect the client to the "Credits" page.
+    return RedirectResponse(url=request.url_for("get_credits_index"))
+
+
+def get_orcid_access_token(request: Request):
+    r"""
+    A dependency that returns the ORCID access token data from the session, if that data is present and
+    the ORCID access token hasn't expired; otherwise, this dependency redirects the client to the home page.
+    """
+
+    if "nmdc-orcid-creditor" in request.session:
+        if "orcid_access_token" in request.session["nmdc-orcid-creditor"]:
+            orcid_access_token_data = request.session["nmdc-orcid-creditor"]["orcid_access_token"]
+
+            # Check whether the token expires in the future (not the past or right now).
+            if "expires_at" in orcid_access_token_data:
+                expires_at = orcid_access_token_data["expires_at"]
+                if datetime.fromtimestamp(expires_at) > datetime.now():
+                    return orcid_access_token_data
+
+    return RedirectResponse(url=request.url_for("get_root"))
+
+
+@app.get("/credits")
+async def get_credits_index(request: Request, orcid_access_token: dict = Depends(get_orcid_access_token)):
+    r"""Displays credits available to the logged-in user."""
 
     # Get a list of credits available to this ORCID ID.
-    response = httpx.get(
-        cfg.NMDC_ORCID_CREDITOR_PROXY_URL,
-        params={"shared_secret": cfg.NMDC_ORCID_CREDITOR_PROXY_SHARED_SECRET, "orcid_id": orcid_id},
-        follow_redirects=True,
-    )
-    logger.debug(response.url)
-    res_json = response.json()
-    context = {
-        "orcid_id": res_json["orcid_id"],
-        "credits": res_json["credits"],
-    }
+    try:
+        response = httpx.get(
+            cfg.NMDC_ORCID_CREDITOR_PROXY_URL,
+            params={
+                "shared_secret": cfg.NMDC_ORCID_CREDITOR_PROXY_SHARED_SECRET,
+                "orcid_id": orcid_access_token["orcid"],
+            },
+            follow_redirects=True,
+        )
+        res_json = response.json()
+        context = {
+            "orcid_id": res_json["orcid_id"],
+            "credits": res_json["credits"],
+        }
 
-    return templates.TemplateResponse(request=request, name="credits.html.jinja", context=context)
+        return templates.TemplateResponse(request=request, name="credits.html.jinja", context=context)
+    except httpx.HTTPError as error:
+        logger.exception(error)
+        return templates.TemplateResponse(
+            request=request, name="error.html.jinja", context={"error_message": "Failed to load credits."}
+        )
