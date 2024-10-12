@@ -74,7 +74,7 @@ async def get_redirect_to_orcid_login_page(request: Request):
 
 
 @app.get("/exchange-code-for-token")
-async def get_exchange_code_for_token(request: Request, code: str):
+async def get_exchange_code_for_token(request: Request):
     r"""Exchanges an ORCID authorization code for an ORCID access token"""
 
     try:
