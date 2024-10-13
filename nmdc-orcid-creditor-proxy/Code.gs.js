@@ -6,7 +6,7 @@
  */
 
 // Reference: https://support.orcid.org/hc/en-us/articles/360006897674-Structure-of-the-ORCID-Identifier
-const orcidRegex = new RegExp(/^\d{4}-\d{4}-\d{4}-\d{4}$/);
+const orcidRegex = new RegExp(/^\d{4}-\d{4}-\d{4}-\d{3}[0-9X]$/);
 
 /**
  * Returns the credits associated with the specified ORCID ID,
