@@ -3,6 +3,7 @@
     <head>
         <meta charset="utf-8" />
         <title>nmdc-orcid-creditor</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="icon"
               type="image/png"
               href="{{ url_for('static', path='/favicon.png') }}" />
@@ -32,6 +33,10 @@
                 --bs-btn-hover-border-color: hsl(from var(--bs-primary) h s calc(l - 5));
                 --bs-btn-active-bg: hsl(from var(--bs-primary) h s calc(l - 10));
                 --bs-btn-active-border-color: hsl(from var(--bs-primary) h s calc(l - 10));
+
+                /* Make the button's color appear muted when the button is disabled. */
+                --bs-btn-disabled-bg: hsl(from var(--bs-primary) h s calc(l + 20));
+                --bs-btn-disabled-border-color: hsl(from var(--bs-primary) h s calc(l + 20));
             }
         </style>
     </head>
