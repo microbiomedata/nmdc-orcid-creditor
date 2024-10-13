@@ -127,6 +127,7 @@ async def get_credits_index(request: Request, orcid_access_token: dict = Depends
     if orcid_access_token is None:
         return RedirectResponse(url=request.url_for("get_root"))
     orcid_id = orcid_access_token["orcid"]
+    name = orcid_access_token["name"]
 
     # Get a list of credits available to this ORCID ID.
     try:
@@ -141,6 +142,7 @@ async def get_credits_index(request: Request, orcid_access_token: dict = Depends
         res_json = response.json()
         context = {
             "orcid_id": res_json["orcid_id"],
+            "name": name,
             "credits": res_json["credits"],
         }
 
