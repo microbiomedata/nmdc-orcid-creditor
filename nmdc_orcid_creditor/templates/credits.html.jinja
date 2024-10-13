@@ -1,5 +1,17 @@
 {% extends "base.html.jinja" %}
 {% block body %}
+    <span class="alert-container">
+        <!-- This template, itself, is invisible. Elements will be created from it via JavaScript. -->
+        <template>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <span class="message"></span>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"></button>
+            </div>
+        </template>
+    </span>
     <h1>Credits</h1>
     <p>
         <span>
@@ -26,7 +38,7 @@
                         <span class="spinner-border spinner-border-lg m-4" aria-hidden="true"></span>
                     </td>
                 </tr>
-                <!-- This template—invisible by default—will be cloned and inserted into the DOM via JavaScript. -->
+                <!-- This template, itself, is invisible. Elements will be created from it via JavaScript. -->
                 <template>
                     <tr>
                         <td></td>
@@ -49,6 +61,15 @@
          * Invoke a function once the page—including all dependent resources (e.g. stylesheets, scripts)—has loaded.
          */
         window.addEventListener("load", () => {
+            const displayAlert = (message) => {
+                const alertContainerEl = document.querySelector(".alert-container");
+                const templateEl = alertContainerEl.querySelector("template");
+                const alertEl = templateEl.content.cloneNode(true);
+                const messageEl = alertEl.querySelector(".message");
+                messageEl.innerHTML = message;
+                alertContainerEl.appendChild(alertEl);
+            };
+
             /**
              * Helper function that formats the specified timestamp as a UTC string.
              */
@@ -100,11 +121,11 @@
                         const json = await response.json();
                         displayCredits(json["credits"])
                     } else {
-                        // FIXME: Implement final error handling. Currently a PoC.
                         throw new Error(`Response status: ${response.status}`);
                     }
                 } catch (error) {
-                    alert(error.message);
+                    console.error(error);
+                    displayAlert("Failed to claim credit. Reload the page and try again.");
                 }
 
                 // Hide the spinner from the clicked button.
@@ -159,11 +180,11 @@
                         const json = await response.json();
                         displayCredits(json["credits"]);
                     } else {
-                        // FIXME: Implement final error handling. Currently a PoC.
                         throw new Error(`Response status: ${response.status}`);
                     }
                 } catch (error) {
-                    alert(error.message);
+                    console.error(error.message);
+                    displayAlert("Failed to load credits. Reload the page to try again.");
                 }
             };
 
