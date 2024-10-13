@@ -10,11 +10,30 @@
               content="Web app NMDC team members use to credit ambassadors and champions via ORCID" />
         <meta name="author" content="National Microbiome Data Collaborative" />
         <meta name="keywords" content="orcid,credit,nmdc,champion,ambassador" />
-        <!-- Bootstrap CSS (from a CDN). -->
+        <!-- Load Bootstrap CSS from a CDN.
+             Reference: https://www.bootstrapcdn.com/ -->
         <link rel="stylesheet"
               href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
               integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
               crossorigin="anonymous">
+        <!-- Customize values of theme variables used by Bootstrap.
+             References:
+             - https://getbootstrap.com/docs/5.3/customize/css-variables/#root-variables
+             - https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/hsl -->
+        <style>
+            :root {
+                --bs-primary: #4f3b80;
+                --bs-secondary: #00aae7;
+            }
+            .btn-primary {
+                --bs-btn-bg: var(--bs-primary);
+                --bs-btn-border-color: var(--bs-primary);
+                --bs-btn-hover-bg: hsl(from var(--bs-primary) h s calc(l - 5));
+                --bs-btn-hover-border-color: hsl(from var(--bs-primary) h s calc(l - 5));
+                --bs-btn-active-bg: hsl(from var(--bs-primary) h s calc(l - 10));
+                --bs-btn-active-border-color: hsl(from var(--bs-primary) h s calc(l - 10));
+            }
+        </style>
     </head>
     <body>
         <nav class="navbar bg-body-tertiary">
