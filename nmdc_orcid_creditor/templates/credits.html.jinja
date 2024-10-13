@@ -21,29 +21,21 @@
                 </tr>
             </thead>
             <tbody>
-                {% for credit in credits %}
+                <!-- This template—invisible by default—will be cloned and inserted into the DOM via JavaScript. -->
+                <template>
                     <tr>
-                        <td>{{ credit["column.CREDIT_TYPE"] }}</td>
-                        <td data-timestamp="{{ credit["column.CLAIMED_AT"] }}">{{ credit["column.CLAIMED_AT"] }}</td>
+                        <td></td>
+                        <td></td>
                         <td>
-                            {% if credit["column.CLAIMED_AT"] %}
-                                <span class="text-body-secondary">None</span>
-                            {% else %}
-                                <button type="button"
-                                        class="btn btn-primary btn-sm"
-                                        data-credit-type="{{ credit["column.CREDIT_TYPE"] }}"
-                                        title="Apply this credit to your ORCID profile">
-                                    <span class="spinner-border spinner-border-sm d-none" aria-hidden="true"></span>
-                                    <span role="status">Claim</span>
-                                </button>
-                            {% endif %}
+                            <button type="button"
+                                    class="btn btn-primary btn-sm claim-button"
+                                    title="Apply this credit to your ORCID profile">
+                                <span class="spinner-border spinner-border-sm d-none" aria-hidden="true"></span>
+                                <span role="status">Claim</span>
+                            </button>
                         </td>
                     </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="4">There are no credits associated with this ORCID ID.</td>
-                    </tr>
-                {% endfor %}
+                </template>
             </tbody>
         </table>
     </div>
@@ -53,66 +45,125 @@
          */
         window.addEventListener("load", () => {
             /**
-             * Replaces the raw timestamps in the table, with timestamp strings in UTC.
-             *
-             * References:
-             * - https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes#javascript_access
+             * Helper function that formats the specified timestamp as a UTC string.
              */
-            const formatTimestamps = () => {
-                const els = document.querySelectorAll("[data-timestamp]");
-                els.forEach(function (el) {
-                    const timestamp = el.dataset.timestamp.trim();
-                    if (timestamp.length > 0) {
-                        const date = new Date(timestamp);
-                        el.innerText = date.toUTCString();
-                    } else {
-                        el.innerText = "";
-                    }
+            const formatTimestamp = (rawTimestamp) => {
+                const date = new Date(rawTimestamp.trim());
+                if (!isNaN(date.valueOf())) {
+                    return date.toUTCString();
+                } else {
+                    return "";
+                }
+            };
+
+            /**
+             * Helper function that disables all claim buttons.
+             */
+            const disableClaimButtons = () => {
+                document.querySelectorAll("button.claim-button").forEach((el) => {
+                    el.setAttribute("disabled", "");
                 });
             };
 
             /**
-             * Sets up the buttons that can be used to claim a credit.
+             * Helper function that enables all claim buttons.
              */
-            const setupClaimButtons = () => {
-                const els = document.querySelectorAll("button[data-credit-type]");
-                const url = "{{ url_for("post_credits_claim") }}";
-                els.forEach(function (el) {
-                    const creditType = el.dataset.creditType.trim();
-                    el.addEventListener("click", async () => {
-                        // Disable the button and reveal its spinner and alternative text.
-                        el.setAttribute("disabled", ""); // creates the attribute (its value is irrelevant here)
-                        el.querySelector("span.spinner-border").classList.remove("d-none");
-                        el.querySelector("span[role='status']").innerText = "Claiming";
-
-                        // FIXME: Implement final response handling and error handling. Currently a PoC.
-                        try {
-                            const response = await fetch(url, {
-                                method: "POST",
-                                headers: {"Content-Type": "application/json"},
-                                body: JSON.stringify({credit_type: creditType}),
-                            });
-                            if (response.ok) {
-                                const json = await response.json();
-                                alert(JSON.stringify(json));
-                            } else {
-                                throw new Error(`Response status: ${response.status}`);
-                            }
-                        } catch (error) {
-                            alert(error.message);
-                        }
-
-                        // Reset the button to its original state.
-                        // TODO: Update the button according to the outcome of the claim action.
-                        el.removeAttribute("disabled");
-                        el.querySelector("span.spinner-border").classList.add("d-none");
-                        el.querySelector("span[role='status']").innerText = "Claim";
-                    });
+            const enableClaimButtons = () => {
+                document.querySelectorAll("button.claim-button").forEach((el) => {
+                    el.removeAttribute("disabled");
                 });
             };
 
-            formatTimestamps();
-            setupClaimButtons();
+            /**
+             * Callback function that claims a credit via the API and manages UI state accordingly.
+             */
+            const handleClaimCredit = async (buttonEl, creditType) => {
+                // Disable all claim buttons.
+                disableClaimButtons();
+
+                // Display a spinner on the clicked button.
+                buttonEl.querySelector("span.spinner-border").classList.remove("d-none");
+
+                try {
+                    const url = "{{ url_for('post_api_credits_claim') }}";
+                    const response = await fetch(url, {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({credit_type: creditType}),
+                    });
+                    if (response.ok) {
+                        const json = await response.json();
+                        displayCredits(json["credits"])
+                    } else {
+                        // FIXME: Implement final error handling. Currently a PoC.
+                        throw new Error(`Response status: ${response.status}`);
+                    }
+                } catch (error) {
+                    alert(error.message);
+                }
+
+                // Hide the spinner from the clicked button.
+                buttonEl.querySelector("span.spinner-border").classList.add("d-none");
+
+                // Re-enable all claim buttons.
+                enableClaimButtons();
+            };
+
+            /**
+             * Helper function that updates the credits table to display the specified credits.
+             */
+            const displayCredits = (credits) => {
+                const tableBodyEl = document.querySelector("table > tbody");
+                tableBodyEl.querySelectorAll("tr").forEach((rowEl) => {
+                    tableBodyEl.removeChild(rowEl);
+                });
+                credits.forEach((credit) => {
+                    // Create a table row for this credit.
+                    const templateEl = tableBodyEl.querySelector("template");
+                    const rowEl = templateEl.content.cloneNode(true);
+
+                    // Populate the cells in this row.
+                    const cells = rowEl.querySelectorAll("td");
+                    const creditType = credit["column.CREDIT_TYPE"];
+                    const claimedAt = formatTimestamp(credit["column.CLAIMED_AT"]);
+                    const isClaimed = claimedAt !== "";
+                    cells[0].innerHTML = creditType;
+                    cells[1].innerHTML = claimedAt;
+                    if (isClaimed) {
+                        cells[2].innerHTML = "None";
+                    } else {
+                        // Set up the claim button.
+                        const buttonEl = cells[2].querySelector("button");
+                        buttonEl.addEventListener("click", (event) => handleClaimCredit(event.currentTarget, creditType));
+                        cells[2].innerHTML = "";
+                        cells[2].appendChild(buttonEl);
+                    }
+
+                    tableBodyEl.appendChild(rowEl);
+                });
+            };
+
+            /**
+             * Fetches credits from the API and displays them on the web page.
+             */
+            const fetchCredits = async () => {
+                const url = "{{ url_for('get_api_credits') }}";
+                try {
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        const json = await response.json();
+                        displayCredits(json["credits"]);
+                    } else {
+                        // FIXME: Implement final error handling. Currently a PoC.
+                        throw new Error(`Response status: ${response.status}`);
+                    }
+                } catch (error) {
+                    alert(error.message);
+                }
+            };
+
+            // Fetch credits from the API and display them.
+            fetchCredits();
         });
     </script>
 {% endblock %}

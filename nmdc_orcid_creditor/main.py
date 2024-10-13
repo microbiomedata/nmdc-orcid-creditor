@@ -122,12 +122,30 @@ async def logout(request: Request):
 
 @app.get("/credits")
 async def get_credits_index(request: Request, orcid_access_token: dict = Depends(get_orcid_access_token)):
-    r"""Displays credits available to the logged-in user."""
+    r"""Responds with the credits page, which displays the credits associated with the signed-in user."""
 
     if orcid_access_token is None:
         return RedirectResponse(url=request.url_for("get_root"))
     orcid_id = orcid_access_token["orcid"]
     name = orcid_access_token["name"]
+
+    # Respond with the credits page.
+    context = {
+        "orcid_id": orcid_id,
+        "name": name,
+    }
+    return templates.TemplateResponse(request=request, name="credits.html.jinja", context=context)
+
+
+@app.get("/api/credits")
+async def get_api_credits(
+    orcid_access_token: dict = Depends(get_orcid_access_token),
+):
+    r"""Returns all credits associated with the specified ORCID ID"""
+
+    if orcid_access_token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid ORCID access token")
+    orcid_id = orcid_access_token["orcid"]
 
     # Get a list of credits available to this ORCID ID.
     try:
@@ -140,22 +158,17 @@ async def get_credits_index(request: Request, orcid_access_token: dict = Depends
             follow_redirects=True,
         )
         res_json = response.json()
-        context = {
+        return {
             "orcid_id": res_json["orcid_id"],
-            "name": name,
             "credits": res_json["credits"],
         }
-
-        return templates.TemplateResponse(request=request, name="credits.html.jinja", context=context)
     except httpx.HTTPError as error:
         logger.exception(error)
-        return templates.TemplateResponse(
-            request=request, name="error.html.jinja", context={"error_message": "Failed to load credits."}
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to load credits.")
 
 
 @app.post("/api/credits/claim")
-async def post_credits_claim(
+async def post_api_credits_claim(
     # Note: This parameter tells FastAPI the request payload will have a property named `credit_type`.
     #
     # References:
@@ -190,7 +203,6 @@ async def post_credits_claim(
             follow_redirects=True,
         )
         res_json = response.json()
-        logger.debug([r.request for r in response.history])
         return {
             "orcid_id": res_json["orcid_id"],
             "credits": res_json["credits"],
