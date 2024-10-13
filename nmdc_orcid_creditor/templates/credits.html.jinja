@@ -15,12 +15,17 @@
         <table class="table table-bordered">
             <thead>
                 <tr>
-                    <td>Credit</td>
-                    <td>Claimed at</td>
-                    <td>Actions</td>
+                    <th>Credit</th>
+                    <th>Claimed at</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
+                <tr>
+                    <td colspan="3" class="text-center">
+                        <span class="spinner-border spinner-border-lg m-4" aria-hidden="true"></span>
+                    </td>
+                </tr>
                 <!-- This template—invisible by default—will be cloned and inserted into the DOM via JavaScript. -->
                 <template>
                     <tr>
@@ -130,7 +135,7 @@
                     cells[0].innerHTML = creditType;
                     cells[1].innerHTML = claimedAt;
                     if (isClaimed) {
-                        cells[2].innerHTML = "None";
+                        cells[2].innerHTML = "<span>None</span>";
                     } else {
                         // Set up the claim button.
                         const buttonEl = cells[2].querySelector("button");
