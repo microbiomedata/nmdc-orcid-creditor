@@ -11,14 +11,34 @@ Web app NMDC team members use to credit ambassadors and champions via ORCID
 
 ## Development
 
-- Create and customize `.env` file (if not already done): `$ cp .env.example .env`
-- Install dependencies: `$ poetry install`
-- Run tests: `$ poetry run pytest`
-- Format Python code: `$ poetry run black .`
-- Lint and format Jinja2 templates: `$ poetry run djlint --reformat --lint .`
+- Create and customize `.env` file (if not already done):
+  ```sh
+  cp .env.example .env
+  ```
+- Install dependencies:
+  ```sh
+  poetry install
+  ```
+- Run tests:
+  ```sh
+  poetry run pytest
+  ```
+- Format Python code:
+  ```sh
+  poetry run black .
+  ```
+- Lint and format Jinja2 templates:
+  ```sh
+  poetry run djlint --reformat --lint .
+  ```
 - Format JavaScript files (if you have [Node.js](https://nodejs.org/en/download/prebuilt-installer) installed):
-  `$ npx prettier --write nmdc-orcid-creditor-proxy/*.js`
-- Run app in development mode: `$ poetry run fastapi dev nmdc_orcid_creditor/main.py`
+  ```sh
+  npx prettier --write nmdc-orcid-creditor-proxy/*.js
+  ```
+- Run app in development mode:
+  ```sh
+  poetry run fastapi dev nmdc_orcid_creditor/main.py
+  ```
 
 ## Journal
 
