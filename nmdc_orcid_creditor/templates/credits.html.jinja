@@ -22,8 +22,10 @@
                             {% if credit["column.CLAIMED_AT"] %}
                                 <span>--</span>
                             {% else %}
-                                <!-- TODO: Implement the claim flow. -->
-                                <button onclick="alert('Not implemented')">Add to ORCID profile</button>
+                                <button class="claim" data-credit-type="{{ credit["column.CREDIT_TYPE"] }}">
+                                    Add to ORCID
+                                    profile
+                                </button>
                             {% endif %}
                         </td>
                     </tr>
@@ -36,15 +38,19 @@
         </table>
     </div>
     <script>
+        /**
+         * Invoke a function once the page—including all dependent resources (e.g. stylesheets, scripts)—has loaded.
+         */
+        window.addEventListener("load", () => {
             /**
-             * Replace the raw timestamps in the table, with timestamp strings in UTC.
+             * Replaces the raw timestamps in the table, with timestamp strings in UTC.
              *
              * References:
              * - https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes#javascript_access
              */
-            (function() {
+            const formatTimestamps = () => {
                 const els = document.querySelectorAll("[data-timestamp]");
-                els.forEach(function(el) {
+                els.forEach(function (el) {
                     const timestamp = el.dataset.timestamp.trim();
                     if (timestamp.length > 0) {
                         const date = new Date(timestamp);
@@ -53,6 +59,39 @@
                         el.innerText = "--";
                     }
                 });
-            })();
+            };
+
+            /**
+             * Sets up the buttons that can be used to claim a credit.
+             */
+            const setupClaimButtons = () => {
+                const els = document.querySelectorAll("button.claim");
+                const url = "{{ url_for("post_credits_claim") }}";
+                els.forEach(function (el) {
+                    const creditType = el.dataset.creditType.trim();
+                    el.addEventListener("click", async () => {
+                        // FIXME: Implement final response handling and error handling. Currently a PoC.
+                        try {
+                            const response = await fetch(url, {
+                                method: "POST",
+                                headers: {"Content-Type": "application/json"},
+                                body: JSON.stringify({credit_type: creditType}),
+                            });
+                            if (response.ok) {
+                                const json = await response.json();
+                                alert(JSON.stringify(json));
+                            } else {
+                                throw new Error(`Response status: ${response.status}`);
+                            }
+                        } catch (error) {
+                            alert(error.message);
+                        }
+                    });
+                });
+            };
+
+            formatTimestamps();
+            setupClaimButtons();
+        });
     </script>
 {% endblock %}

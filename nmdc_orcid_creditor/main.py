@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime
+from typing import Annotated
 
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends, HTTPException, status, Body
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.responses import HTMLResponse, RedirectResponse
@@ -125,6 +126,7 @@ async def get_credits_index(request: Request, orcid_access_token: dict = Depends
 
     if orcid_access_token is None:
         return RedirectResponse(url=request.url_for("get_root"))
+    orcid_id = orcid_access_token["orcid"]
 
     # Get a list of credits available to this ORCID ID.
     try:
@@ -132,7 +134,7 @@ async def get_credits_index(request: Request, orcid_access_token: dict = Depends
             cfg.NMDC_ORCID_CREDITOR_PROXY_URL,
             params={
                 "shared_secret": cfg.NMDC_ORCID_CREDITOR_PROXY_SHARED_SECRET,
-                "orcid_id": orcid_access_token["orcid"],
+                "orcid_id": orcid_id,
             },
             follow_redirects=True,
         )
@@ -148,3 +150,49 @@ async def get_credits_index(request: Request, orcid_access_token: dict = Depends
         return templates.TemplateResponse(
             request=request, name="error.html.jinja", context={"error_message": "Failed to load credits."}
         )
+
+
+@app.post("/api/credits/claim")
+async def post_credits_claim(
+    # Note: This parameter tells FastAPI the request payload will have a property named `credit_type`.
+    #
+    # References:
+    # - https://fastapi.tiangolo.com/tutorial/body-multiple-params/#multiple-body-parameters (docs)
+    # - https://stackoverflow.com/a/70636163 (example)
+    #
+    credit_type: Annotated[str, Body(..., embed=True)],
+    orcid_access_token: dict = Depends(get_orcid_access_token),
+):
+    r"""
+    Claims all unclaimed credits that both have the specified type and are associated with the specified ORCID ID.
+    """
+
+    if orcid_access_token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid ORCID access token")
+    orcid_id = orcid_access_token["orcid"]
+
+    # FIXME: Here, claim the credit via ORCID's API. If unsuccessful, return an error response and abort
+    #        (instead of proceeding to record the claim event into the Google Sheets document).
+    #
+    pass
+
+    # Record the claim event into the Google Sheets document via the proxy.
+    try:
+        response = httpx.post(
+            cfg.NMDC_ORCID_CREDITOR_PROXY_URL,
+            params={
+                "shared_secret": cfg.NMDC_ORCID_CREDITOR_PROXY_SHARED_SECRET,
+                "orcid_id": orcid_id,
+                "credit_type": credit_type,
+            },
+            follow_redirects=True,
+        )
+        res_json = response.json()
+        logger.debug([r.request for r in response.history])
+        return {
+            "orcid_id": res_json["orcid_id"],
+            "credits": res_json["credits"],
+        }
+    except httpx.HTTPError as error:
+        logger.exception(error)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to record claim.")
