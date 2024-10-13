@@ -59,14 +59,14 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="nmdc_orcid_creditor/templates")
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def get_root(request: Request):
     r"""Displays a web page containing a login link"""
 
     return templates.TemplateResponse(request=request, name="home.html.jinja")
 
 
-@app.get("/redirect-to-orcid-login-page")
+@app.get("/redirect-to-orcid-login-page", include_in_schema=False)
 async def get_redirect_to_orcid_login_page(request: Request):
     r"""Redirects the client to ORCID, initiating the ORCID login flow"""
 
@@ -74,7 +74,7 @@ async def get_redirect_to_orcid_login_page(request: Request):
     return await oauth.orcid.authorize_redirect(request, redirect_uri=redirect_uri)
 
 
-@app.get("/exchange-code-for-token")
+@app.get("/exchange-code-for-token", include_in_schema=False)
 async def get_exchange_code_for_token(request: Request):
     r"""Exchanges an ORCID authorization code for an ORCID access token"""
 
@@ -98,7 +98,7 @@ async def get_exchange_code_for_token(request: Request):
 
 
 def get_orcid_access_token(request: Request):
-    r"""Returns the ORCID access token from the session, if it is present and hasn't expired."""
+    r"""Returns the ORCID access token from the session, if it is present and hasn't expired"""
 
     if "orcid_access_token" in request.session:
         orcid_access_token_data = request.session["orcid_access_token"]
@@ -112,17 +112,17 @@ def get_orcid_access_token(request: Request):
     return None
 
 
-@app.get("/logout")
+@app.get("/logout", include_in_schema=False)
 async def logout(request: Request):
-    r"""Logs the client out by clearing the session, then redirects the client to the home page."""
+    r"""Logs the client out by clearing the session, then redirects the client to the home page"""
 
     request.session.clear()
     return RedirectResponse(url=request.url_for("get_root"))
 
 
-@app.get("/credits")
+@app.get("/credits", include_in_schema=False)
 async def get_credits_index(request: Request, orcid_access_token: dict = Depends(get_orcid_access_token)):
-    r"""Responds with the credits page, which displays the credits associated with the signed-in user."""
+    r"""Responds with the credits page, which displays the credits associated with the signed-in user"""
 
     if orcid_access_token is None:
         return RedirectResponse(url=request.url_for("get_root"))
@@ -137,7 +137,7 @@ async def get_credits_index(request: Request, orcid_access_token: dict = Depends
     return templates.TemplateResponse(request=request, name="credits.html.jinja", context=context)
 
 
-@app.get("/api/credits")
+@app.get("/api/credits", tags=["Credits"])
 async def get_api_credits(
     orcid_access_token: dict = Depends(get_orcid_access_token),
 ):
@@ -164,10 +164,10 @@ async def get_api_credits(
         }
     except httpx.HTTPError as error:
         logger.exception(error)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to load credits.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to load credits")
 
 
-@app.post("/api/credits/claim")
+@app.post("/api/credits/claim", tags=["Credits"])
 async def post_api_credits_claim(
     # Note: This parameter tells FastAPI the request payload will have a property named `credit_type`.
     #
@@ -179,7 +179,7 @@ async def post_api_credits_claim(
     orcid_access_token: dict = Depends(get_orcid_access_token),
 ):
     r"""
-    Claims all unclaimed credits that both have the specified type and are associated with the specified ORCID ID.
+    Claims all unclaimed credits that both have the specified type and are associated with the specified ORCID ID
     """
 
     if orcid_access_token is None:
