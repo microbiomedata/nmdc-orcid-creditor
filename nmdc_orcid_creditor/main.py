@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Union
 
 from fastapi import FastAPI, Request, Depends, HTTPException, status, Body
 from fastapi.staticfiles import StaticFiles
@@ -94,22 +94,31 @@ async def get_exchange_code_for_token(request: Request):
     request.session["orcid_access_token"] = orcid_access_token
 
     # Now, redirect the client to the "Credits" page.
-    return RedirectResponse(url=request.url_for("get_credits_index"))
+    return RedirectResponse(url=request.url_for("get_credits"))
 
 
-def get_orcid_access_token(request: Request):
-    r"""Returns the ORCID access token from the session, if it is present and hasn't expired"""
+def validate_orcid_access_token(orcid_access_token: dict) -> Union[dict, None]:
+    r"""
+    Validates the ORCID access token, returning it if valid or `None` if invalid
 
-    if "orcid_access_token" in request.session:
-        orcid_access_token_data = request.session["orcid_access_token"]
+    Note: This function does _not_ validate that the ORCID access token has not
+          been tampered with since we stored it in the session. That validation
+          is handled by the `SessionMiddleware`.
+    """
 
-        # Check whether the token expires in the future (not the past or present).
-        if "expires_at" in orcid_access_token_data:
-            expires_at = orcid_access_token_data["expires_at"]
-            if datetime.fromtimestamp(expires_at) > datetime.now():
-                return orcid_access_token_data
+    # Check whether the token expires in the future (not the past or present).
+    if "expires_at" in orcid_access_token:
+        expires_at = orcid_access_token["expires_at"]
+        if datetime.fromtimestamp(expires_at) > datetime.now():
+            return orcid_access_token
 
     return None
+
+
+def get_orcid_access_token(request: Request) -> Union[dict, None]:
+    r"""Returns the ORCID access token, if valid, present in the session; otherwise return `None`"""
+
+    return validate_orcid_access_token(request.session.get("orcid_access_token", {}))
 
 
 @app.get("/logout", include_in_schema=False)
@@ -121,7 +130,7 @@ async def logout(request: Request):
 
 
 @app.get("/credits", include_in_schema=False)
-async def get_credits_index(request: Request, orcid_access_token: dict = Depends(get_orcid_access_token)):
+async def get_credits(request: Request, orcid_access_token: dict = Depends(get_orcid_access_token)):
     r"""Responds with the credits page, which displays the credits associated with the signed-in user"""
 
     if orcid_access_token is None:
