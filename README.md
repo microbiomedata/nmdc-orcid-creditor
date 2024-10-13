@@ -24,3 +24,4 @@ Web app NMDC team members use to credit ambassadors and champions via ORCID
 
 - We copied `static/favicon.png` from
   the [nmdc-field-notes](https://github.com/microbiomedata/nmdc-field-notes/blob/main/public/favicon.png) repository
+- We downloaded `static/undraw_online_resume_re_ru7s.svg` from [unDraw](https://undraw.co/license)
