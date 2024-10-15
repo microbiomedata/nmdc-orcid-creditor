@@ -18,8 +18,8 @@ class Config(BaseSettings):
 
     # ORCID URLs, Oauth scopes, and Client (integration) information.
     # Reference: https://info.orcid.org/documentation/api-tutorials/api-tutorial-add-and-update-data-on-an-orcid-record/
-    ORCID_ACCESS_TOKEN_URL: str = ""  # ends with "/token"
-    ORCID_AUTHORIZE_BASE_URL: str = ""  # ends with "/authorize"
+    ORCID_ACCESS_TOKEN_URL: str = "https://orcid.org/oauth/token"  # ends with "/token"
+    ORCID_AUTHORIZE_BASE_URL: str = "https://orcid.org/oauth/authorize"  # ends with "/authorize"
     ORCID_OAUTH_SCOPES: str = ""  # space-delimited list
     ORCID_CLIENT_ID: str = ""
     ORCID_CLIENT_SECRET: str = ""
