@@ -1,0 +1,32 @@
+name: Test Python app
+
+on:
+  # Run the workflow whenever commits are pushed to the `main` branch.
+  # Docs: https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#push
+  push: { branches: [ main ] }
+  # Run the workflow whenever a Pull Request is opened or commits are added to it.
+  # Docs: https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#pull_request
+  pull_request: { }
+  # Allow people to trigger the workflow manually from the GitHub UI.
+  # Docs: https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#workflow_dispatch
+  workflow_dispatch: { }
+
+jobs:
+  test:
+    name: Test Python app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out commit  # Docs: https://github.com/actions/checkout
+        uses: actions/checkout@v4
+      - name: Set up Python  # Docs: https://github.com/actions/setup-python
+        uses: actions/setup-python@v5
+        with:
+          # Specify a Python version that satisfies the `tool.poetry.dependencies.python`
+          # version requirement specified in `pyproject.toml`.
+          python-version: 3.10
+      - name: Install Poetry  # Docs: https://github.com/snok/install-poetry
+        uses: snok/install-poetry@v1
+      - name: Install dependencies  # Docs: https://python-poetry.org/docs/cli/#install
+        run: poetry install --no-interaction
+      - name: Run tests
+        run: poetry run pytest -v

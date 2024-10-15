@@ -13,7 +13,7 @@ RUN python -m pip install poetry
 # Reference: https://python-poetry.org/docs/cli/#install
 ADD poetry.lock    /app/poetry.lock
 ADD pyproject.toml /app/pyproject.toml
-RUN poetry install
+RUN poetry install --no-interaction
 
 # Run the FastAPI development server, accepting HTTP requests from any host,
 # include those outside of the container (e.g. the container host system).
