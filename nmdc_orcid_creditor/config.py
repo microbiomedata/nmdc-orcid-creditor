@@ -20,7 +20,8 @@ class Config(BaseSettings):
     # Reference: https://info.orcid.org/documentation/api-tutorials/api-tutorial-add-and-update-data-on-an-orcid-record/
     ORCID_ACCESS_TOKEN_URL: str = "https://orcid.org/oauth/token"  # ends with "/token"
     ORCID_AUTHORIZE_BASE_URL: str = "https://orcid.org/oauth/authorize"  # ends with "/authorize"
-    ORCID_OAUTH_SCOPES: str = ""  # space-delimited list
+    ORCID_API_BASE_URL: str = "https://api.orcid.org/v3.0"  # ends with "/v3.0"
+    ORCID_OAUTH_SCOPES: str = "/authenticate /activities/update"  # space-delimited list
     ORCID_CLIENT_ID: str = ""
     ORCID_CLIENT_SECRET: str = ""
 
