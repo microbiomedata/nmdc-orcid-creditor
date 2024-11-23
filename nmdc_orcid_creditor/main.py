@@ -198,6 +198,8 @@ async def post_api_credits_claim(
     # Report the credit to ORCID (as a "service" credit). If unsuccessful, return an error response and abort
     # (instead of proceeding to record the claim event into the Google Sheets document).
     #
+    # TODO: Store the identifiers returned by ORCID, in case we want to _update_ the records later.
+    #
     # References:
     # - https://github.com/ORCID/orcid-model/blob/master/src/main/resources/record_3.0/README.md#add-record-items
     #
