@@ -3,10 +3,6 @@
 NMDC ORCID Creditor is a web app NMDC team members can use to offer credits to people that contribute to the project;
 and which those people can use to claim those credits—applying them to their ORCID profiles.
 
-> [!IMPORTANT]  
-> NMDC ORCID Creditor does not yet allow a person to claim a credit in a way that updates
-> their ORCID profile. That functionality is still under development.
-
 ## Development
 
 ### Quick start
