@@ -63,7 +63,7 @@ You can run the following commands inside the container (i.e. at the container's
   # From outside the container:
   # $ docker compose exec app poetry run djlint --reformat --lint .
   ```
-- Format JavaScript files (if you have [Node.js  and NPM](https://nodejs.org/en/download/prebuilt-installer) installed):
+- Format JavaScript files (if you have [Node.js and NPM](https://nodejs.org/en/download/prebuilt-installer) installed):
   ```sh
   npx --yes prettier --write nmdc-orcid-creditor-proxy/*.js
   
