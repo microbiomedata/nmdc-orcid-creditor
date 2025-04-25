@@ -195,10 +195,45 @@ async def post_api_credits_claim(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid ORCID access token")
     orcid_id = orcid_access_token["orcid"]
 
-    # FIXME: Here, claim the credit via ORCID's API. If unsuccessful, return an error response and abort
-    #        (instead of proceeding to record the claim event into the Google Sheets document).
+    # Report the credit to ORCID (as a "service" credit). If unsuccessful, return an error response and abort
+    # (instead of proceeding to record the claim event into the Google Sheets document).
     #
-    pass
+    # TODO: Store the identifiers returned by ORCID, in case we want to _update_ the records later.
+    #
+    # References:
+    # - https://github.com/ORCID/orcid-model/blob/master/src/main/resources/record_3.0/README.md#add-record-items
+    #
+    try:
+        orcid_api_url = f"{cfg.ORCID_API_BASE_URL}/{orcid_id}/service"
+        response = httpx.post(
+            orcid_api_url,
+            headers={"Authorization": f"Bearer {orcid_access_token['access_token']}"},
+            json={
+                # TODO: Consider including a department and other information (see payload examples in ORCID docs).
+                "role-title": f"{credit_type}",
+                # FIXME: Obtain the date from the spreadsheet (or omit it?).
+                "start-date": {"year": {"value": "1970"}, "month": {"value": "01"}, "day": {"value": "01"}},
+                # FIXME: Obtain the date from the spreadsheet (or omit it?).
+                "end-date": {"year": {"value": "2024"}, "month": {"value": "12"}, "day": {"value": "31"}},
+                "organization": {
+                    "name": "National Microbiome Data Collaborative",
+                    "address": {"city": "Berkeley", "region": "California", "country": "US"},
+                    "disambiguated-organization": {
+                        "disambiguated-organization-identifier": "https://ror.org/05cwx3318",
+                        "disambiguation-source": "ROR",
+                    },
+                },
+                "url": {"value": "https://microbiomedata.org/"},
+            },
+        )
+
+        # If the response wasn't `201`, abort; i.e., don't record that the credit has been claimed.
+        if response.status_code != 201:
+            logger.debug(f"{response.status_code=}\n{response.content=}")
+            raise RuntimeError("Failed to record claim.")
+    except (httpx.HTTPError, RuntimeError) as error:
+        logger.exception(error)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to record claim.")
 
     # Record the claim event into the Google Sheets document via the proxy.
     try:
