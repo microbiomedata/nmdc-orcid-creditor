@@ -52,14 +52,14 @@ jobs:
         tags: type=semver,pattern={{version}}
         # Reference: https://github.com/opencontainers/image-spec/blob/main/annotations.md
         labels: |
-          org.opencontainers.image.title="NMDC ORCID Creditor"
-          org.opencontainers.image.description="FastAPI web application NMDC team members use to distribute ORCID credits to NMDC contributors."
-          org.opencontainers.image.vendor="National Microbiome Data Collaborative"
-          org.opencontainers.image.documentation="https://github.com/microbiomedata/nmdc-orcid-creditor"
-          org.opencontainers.image.url="https://github.com/microbiomedata/nmdc-orcid-creditor"
-          org.opencontainers.image.source="https://github.com/microbiomedata/nmdc-orcid-creditor"
-          org.opencontainers.image.version="{{version}}"
-          org.opencontainers.image.revision="{{sha}}"
+          org.opencontainers.image.title=NMDC ORCID Creditor
+          org.opencontainers.image.description=FastAPI web application NMDC team members use to distribute ORCID affiliations to NMDC contributors
+          org.opencontainers.image.vendor=National Microbiome Data Collaborative
+          org.opencontainers.image.documentation=https://github.com/microbiomedata/nmdc-orcid-creditor
+          org.opencontainers.image.url=https://github.com/microbiomedata/nmdc-orcid-creditor
+          org.opencontainers.image.source=https://github.com/microbiomedata/nmdc-orcid-creditor
+          org.opencontainers.image.version={{version}}
+          org.opencontainers.image.revision={{sha}}
       # Use the `docker/build-push-action` action to build the image described
       # by the specified Dockerfile. If the build succeeds, push the image to GHCR.
       # This action uses the `tags` and `labels` parameters to tag and label
@@ -69,8 +69,10 @@ jobs:
       id: push
       uses: docker/build-push-action@v5
       with:
+        # Build the "production" target (stage) defined in the `Dockerfile`.
         context: .
         file: Dockerfile
+        target: production
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         push: true

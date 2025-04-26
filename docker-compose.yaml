@@ -1,7 +1,7 @@
 services:
   app:
-    # Use the container image built from the specified Dockerfile.
-    build: { context: ".", dockerfile: Dockerfile }
+    # Use the container image built in the "development" stage of the Dockerfile.
+    build: { context: ".", dockerfile: Dockerfile, target: development }
     restart: unless-stopped
     ports:
       # Map a host port (by default, 8000, but it can be overridden via an
@@ -28,7 +28,3 @@ services:
       #       within the container.
       #
       - ".:/app"
-    # Run the FastAPI development server, accepting HTTP requests from any host,
-    # include hosts outside of the container (e.g. the container host system).
-    # Reference: https://fastapi.tiangolo.com/deployment/manually/
-    command: [ "poetry", "run", "fastapi", "dev", "--host", "0.0.0.0", "/app/nmdc_orcid_creditor/main.py" ]
