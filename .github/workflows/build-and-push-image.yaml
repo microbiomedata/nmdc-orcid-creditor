@@ -1,0 +1,76 @@
+# GitHub Actions workflow that builds and publishes a container image to GHCR.
+name: Build and push container image to GHCR
+
+# This workflow will run whenever a Release is published.
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  # Run the tests defined in `.github/workflows/test.yaml`.
+  test:
+    name: Run tests
+    uses: ./.github/workflows/test.yml
+  build-and-push-image:
+    name: Build and push container image
+    runs-on: ubuntu-latest
+    needs: test  # makes it so this job runs only after the tests pass
+    steps:
+    - name: Check out commit  # Docs: https://github.com/actions/checkout
+      uses: actions/checkout@v4
+
+    # Note: These steps are about setting the package version string in `pyproject.toml`.
+    - name: Set up Python  # Docs: https://github.com/actions/setup-python
+      uses: actions/setup-python@v5
+      with:
+        # Specify a Python version that satisfies the `tool.poetry.dependencies.python`
+        # version requirement specified in `pyproject.toml`.
+        python-version: '3.10'
+    - name: Install Poetry  # Docs: https://github.com/snok/install-poetry
+      uses: snok/install-poetry@v1
+    - name: Update package version  # Docs: https://python-poetry.org/docs/cli/#version
+      run: poetry version ${{ github.ref_name }}
+    
+    # Note: These steps are about building and publishing the container image.
+    - name: Authenticate with container registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      # Use the `docker/metadata-action` action to extract values that can
+      # be incorporated into the tags and labels of the resulting container
+      # image. The step's `id` ("meta") can be used in subsequent steps to
+      # reference the _outputs_ of this step.
+      # Docs: https://github.com/docker/metadata-action
+    - name: Prepare metadata of container image
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ghcr.io/microbiomedata/nmdc-orcid-creditor
+        flavor: latest=auto
+        tags: type=semver,pattern={{version}}
+        # Reference: https://github.com/opencontainers/image-spec/blob/main/annotations.md
+        labels: |
+          org.opencontainers.image.title="NMDC ORCID Creditor"
+          org.opencontainers.image.description="FastAPI web application NMDC team members use to distribute ORCID credits to NMDC contributors."
+          org.opencontainers.image.vendor="National Microbiome Data Collaborative"
+          org.opencontainers.image.documentation="https://github.com/microbiomedata/nmdc-orcid-creditor"
+          org.opencontainers.image.url="https://github.com/microbiomedata/nmdc-orcid-creditor"
+          org.opencontainers.image.source="https://github.com/microbiomedata/nmdc-orcid-creditor"
+          org.opencontainers.image.version="{{version}}"
+          org.opencontainers.image.revision="{{sha}}"
+      # Use the `docker/build-push-action` action to build the image described
+      # by the specified Dockerfile. If the build succeeds, push the image to GHCR.
+      # This action uses the `tags` and `labels` parameters to tag and label
+      # the image, respectively, with the _outputs_ from the "meta" step above.
+      # Docs: https://github.com/docker/build-push-action#usage
+    - name: Build and push container image
+      id: push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: Dockerfile
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        push: true
