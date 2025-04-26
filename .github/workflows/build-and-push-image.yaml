@@ -10,7 +10,7 @@ jobs:
   # Run the tests defined in `.github/workflows/test.yaml`.
   test:
     name: Run tests
-    uses: ./.github/workflows/test.yml
+    uses: ./.github/workflows/test.yaml
   build-and-push-image:
     name: Build and push container image
     runs-on: ubuntu-latest
