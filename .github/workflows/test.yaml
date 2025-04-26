@@ -10,6 +10,9 @@ on:
   # Allow people to trigger the workflow manually from the GitHub UI.
   # Docs: https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#workflow_dispatch
   workflow_dispatch: { }
+  # Allow this workflow to be called by other workflows.
+  # Reference: https://docs.github.com/en/actions/using-workflows/reusing-workflows
+  workflow_call: { }
 
 jobs:
   test:
