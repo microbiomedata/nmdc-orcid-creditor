@@ -6,17 +6,21 @@ WORKDIR /app
 RUN apt update && \
     apt install -y nodejs npm
 
-# Install Poetry.
-RUN python -m pip install poetry
+# Install Poetry (a dependency manager) and Uvicorn (a web application server).
+RUN python -m pip install \
+    poetry \
+    uvicorn[standard]
 
-# Use Poetry to install Python package dependencies.
+# Use Poetry to install Python package dependencies; without installing the project, itself.
 # Reference: https://python-poetry.org/docs/cli/#install
 ADD poetry.lock    /app/poetry.lock
 ADD pyproject.toml /app/pyproject.toml
-RUN poetry install --no-interaction
+RUN poetry install --no-interaction --no-root
 
-# Run the FastAPI development server, accepting HTTP requests from any host,
-# include those outside of the container (e.g. the container host system).
-# Reference: https://fastapi.tiangolo.com/deployment/manually/
+# Copy the repository contents into the image.
+COPY . /app
+
+# Use Uvicorn to serve the FastAPI application on port 8000, accepting requests from any host.
+# Reference: https://fastapi.tiangolo.com/deployment/manually/#run-the-server-program
 EXPOSE 8000
-CMD [ "poetry", "run", "fastapi", "dev", "--host", "0.0.0.0", "/app/nmdc_orcid_creditor/main.py" ]
+CMD [ "uvicorn", "nmdc_orcid_creditor.main:app", "--host", "0.0.0.0", "--port", "8000" ]
