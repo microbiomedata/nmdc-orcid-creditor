@@ -26,7 +26,7 @@ COPY . /app
 
 # Use Uvicorn to serve the FastAPI application on port 8000, accepting HTTP requests from any host.
 # Reference: https://fastapi.tiangolo.com/deployment/manually/#run-the-server-program
-CMD [ "uvicorn", "nmdc_orcid_creditor.main:app", "--host", "0.0.0.0", "--port", "8000" ]
+CMD [ "poetry", "run", "uvicorn", "nmdc_orcid_creditor.main:app", "--host", "0.0.0.0", "--port", "8000" ]
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS development
