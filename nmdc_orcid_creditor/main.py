@@ -80,7 +80,9 @@ async def get_exchange_code_for_token(request: Request):
 
     try:
         orcid_access_token: dict = await oauth.orcid.authorize_access_token(request)
-    except OAuthError as error:
+    except (OAuthError, httpx.HTTPStatusError) as error:
+        # Note: An `httpx.HTTPStatusError` is raised when the response status code is 4xx or 5xx.
+        #       Reference: https://www.python-httpx.org/exceptions/#exception-classes
         logger.exception(error)
         return templates.TemplateResponse(
             request=request, name="error.html.jinja", context={"error_message": "Failed to log in to ORCID."}
