@@ -25,8 +25,17 @@ FROM base AS production
 COPY . /app
 
 # Use Uvicorn to serve the FastAPI application on port 8000, accepting HTTP requests from any host.
+#
+# Note: We include the `--proxy-headers` option so that Uvicorn will forward HTTP headers indicating
+#       that something upstream (toward the client) is handling HTTPS (in the case of our production
+#       environment, that is Cloudflare and/or a Kubernetes ingress); as opposed to Uvicorn, itself,
+#       handling HTTPS. This fixes an issue where the ORCID Redirect URLs generated within the
+#       FastAPI app were being prefixed with `http://` instead of `https://`.
+#       Reference: https://github.com/encode/starlette/issues/538#issuecomment-518748568
+#
 # Reference: https://fastapi.tiangolo.com/deployment/manually/#run-the-server-program
-CMD [ "poetry", "run", "uvicorn", "nmdc_orcid_creditor.main:app", "--host", "0.0.0.0", "--port", "8000" ]
+#
+CMD [ "poetry", "run", "uvicorn", "nmdc_orcid_creditor.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers" ]
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS development
