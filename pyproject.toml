@@ -44,10 +44,13 @@ httpx = "^0.27.2"
 djlint = "^1.35.2"
 
 [tool.pytest.ini_options]
-# Make it so that, when someone runs `$ poetry run pytest`, in addition to running the tests, it
-# also (via the `pytest-cov` plugin) measures test coverage of the source code directory.
-# Reference: https://pytest-cov.readthedocs.io/en/latest/config.html#configuration
-addopts = "--cov=nmdc_orcid_creditor"
+# Make it so that, when someone runs `$ poetry run pytest`, in addition to running the tests,
+# it also runs doctests defined within Python modules and (via the `pytest-cov` plugin)
+# it also measures test coverage of the source code directory.
+# References:
+# - https://docs.pytest.org/en/stable/how-to/doctest.html#how-to-run-doctests
+# - https://pytest-cov.readthedocs.io/en/latest/config.html#configuration
+addopts = "--doctest-modules --cov=nmdc_orcid_creditor"
 
 [tool.black]
 # Make it so that, when someone runs `$ poetry run black`, these default CLI options are used.
