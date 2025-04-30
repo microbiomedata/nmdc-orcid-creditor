@@ -49,10 +49,11 @@ function test_claimCreditsByTypeAndOrcidId() {
 
 /**
  * Claims the credits having the specified combination of credit type and ORCID ID,
- * in the Google Sheets document. Then, returns the credits associated with the
- * specified ORCID ID, which will reflect any updates made.
+ * in the Google Sheets document, storing the specified affiliation "put-code" on
+ * those rows. Then, returns the credits associated with the specified ORCID ID,
+ * which will reflect any timestamp updates made by this function.
  */
-function claimCreditsByTypeAndOrcidId(creditType, orcidId) {
+function claimCreditsByTypeAndOrcidId(creditType, orcidId, affiliationPutCode) {
   const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
   const sheet = spreadsheet.getSheetByName(CONFIG.SHEET_NAME);
 
@@ -65,9 +66,11 @@ function claimCreditsByTypeAndOrcidId(creditType, orcidId) {
   const creditTypeColumnIndex = columnNames.indexOf("column.CREDIT_TYPE");
   const orcidIdColumnIndex = columnNames.indexOf("column.ORCID_ID");
 
-  // Determine the column number of the column indicating when the credit was claimed.
+  // Determine the column number of the column indicating when the credit was claimed,
+  // and the column number of the column indicating the affiliation's "put-code".
   // Note: Google Sheets column numbers are 1-based.
   const claimedAtColumnNumber = columnNames.indexOf("column.CLAIMED_AT") + 1;
+  const affiliationPutCodeColumnNumber = columnNames.indexOf("column.AFFILIATION_PUT_CODE") + 1;
 
   // Find the row numbers of the rows having the specified credit type and ORCID ID pair.
   let rowNumbers = [];
@@ -83,10 +86,14 @@ function claimCreditsByTypeAndOrcidId(creditType, orcidId) {
   // Generate a timestamp representing the current date and time (now).
   const claimedAt = new Date();
 
-  // Write that timestamp to each of those rows, in the column that indicates when the credit was claimed.
+  // Write that timestamp and the "put-code" to each of those rows,
+  // in the column that indicates when the credit was claimed.
   rowNumbers.forEach((rowNumber) => {
-    const cell = dataRange.getCell(rowNumber, claimedAtColumnNumber);
-    cell.setValue(claimedAt);
+    const claimedAtCell = dataRange.getCell(rowNumber, claimedAtColumnNumber);
+    claimedAtCell.setValue(claimedAt);
+
+    const affiliationPutCodeCell = dataRange.getCell(rowNumber, affiliationPutCodeColumnNumber);
+    affiliationPutCodeCell.setValue(affiliationPutCode);
   });
 
   // Return the updated credits associated with this ORCID ID.
@@ -151,9 +158,10 @@ function doPost(event) {
   const _ = validateSharedSecret(queryParams["shared_secret"]);
   const orcidId = validateOrcidId(queryParams["orcid_id"]);
   const creditType = validateCreditType(queryParams["credit_type"]);
+  const affiliationPutCode = validateCreditType(queryParams["affiliation_put_code"]);
 
   // Update the specified credits and then get all credits associated with that ORCID ID.
-  const credits = claimCreditsByTypeAndOrcidId(creditType, orcidId);
+  const credits = claimCreditsByTypeAndOrcidId(creditType, orcidId, affiliationPutCode);
 
   return ContentService.createTextOutput(
     JSON.stringify({ orcid_id: orcidId, credits }),

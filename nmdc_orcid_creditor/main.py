@@ -11,6 +11,7 @@ from authlib.integrations.starlette_client import OAuth, OAuthError
 import httpx
 
 from nmdc_orcid_creditor.config import cfg
+from nmdc_orcid_creditor.helpers import extract_put_code_from_location_header
 
 # Enable debug output on the console.
 logger = logging.getLogger("uvicorn")
@@ -197,13 +198,14 @@ async def post_api_credits_claim(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid ORCID access token")
     orcid_id = orcid_access_token["orcid"]
 
-    # Report the credit to ORCID (as a "service" credit). If unsuccessful, return an error response and abort
-    # (instead of proceeding to record the claim event into the Google Sheets document).
-    #
-    # TODO: Store the identifiers returned by ORCID, in case we want to _update_ the records later.
+    # Report the credit to ORCID (as a "service" affiliation) and extract the affiliation's "put-code" from the
+    # API response. If we fail to do either thing, return an error response and abort (instead of proceeding to
+    # record the claim event and "put-code" into the Google Sheets document).
     #
     # References:
     # - https://github.com/ORCID/orcid-model/blob/master/src/main/resources/record_3.0/README.md#add-record-items
+    # - https://github.com/ORCID/ORCID-Source/tree/main/orcid-api-web#orcid-apis
+    # - https://github.com/ORCID/ORCID-Source/blob/main/orcid-api-web/tutorial/affiliations.md
     #
     try:
         orcid_api_url = f"{cfg.ORCID_API_BASE_URL}/{orcid_id}/service"
@@ -229,15 +231,22 @@ async def post_api_credits_claim(
             },
         )
 
-        # If the response wasn't `201`, abort; i.e., don't record that the credit has been claimed.
-        if response.status_code != 201:
-            logger.debug(f"{response.status_code=}\n{response.content=}")
-            raise RuntimeError("Failed to record claim.")
+        # Try to extract the affiliation's "put-code" from the response's "location" header.
+        response_location_header = response.headers.get("location", default="")
+        affiliation_put_code = extract_put_code_from_location_header(response_location_header)
+
+        # If the response status code wasn't `201` or we failed to extract a "put-code",
+        # abort; i.e., don't record that the credit has been claimed.
+        if response.status_code != 201 or affiliation_put_code is None:
+            logger.debug(f"{response.status_code=}\n{response.headers=}\n{response.content=}")
+            raise RuntimeError("Failed to claim credit.")
+        else:
+            logger.debug(f"Created affiliation having put-code: {affiliation_put_code}")
     except (httpx.HTTPError, RuntimeError) as error:
         logger.exception(error)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to record claim.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to claim credit.")
 
-    # Record the claim event into the Google Sheets document via the proxy.
+    # Record the claim event, including the "put-code", into the Google Sheets document via the proxy.
     try:
         response = httpx.post(
             cfg.NMDC_ORCID_CREDITOR_PROXY_URL,
@@ -245,6 +254,7 @@ async def post_api_credits_claim(
                 "shared_secret": cfg.NMDC_ORCID_CREDITOR_PROXY_SHARED_SECRET,
                 "orcid_id": orcid_id,
                 "credit_type": credit_type,
+                "affiliation_put_code": affiliation_put_code,
             },
             follow_redirects=True,
         )
