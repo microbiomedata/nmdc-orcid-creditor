@@ -70,7 +70,8 @@ function claimCreditsByTypeAndOrcidId(creditType, orcidId, affiliationPutCode) {
   // and the column number of the column indicating the affiliation's "put-code".
   // Note: Google Sheets column numbers are 1-based.
   const claimedAtColumnNumber = columnNames.indexOf("column.CLAIMED_AT") + 1;
-  const affiliationPutCodeColumnNumber = columnNames.indexOf("column.AFFILIATION_PUT_CODE") + 1;
+  const affiliationPutCodeColumnNumber =
+    columnNames.indexOf("column.AFFILIATION_PUT_CODE") + 1;
 
   // Find the row numbers of the rows having the specified credit type and ORCID ID pair.
   let rowNumbers = [];
@@ -92,7 +93,10 @@ function claimCreditsByTypeAndOrcidId(creditType, orcidId, affiliationPutCode) {
     const claimedAtCell = dataRange.getCell(rowNumber, claimedAtColumnNumber);
     claimedAtCell.setValue(claimedAt);
 
-    const affiliationPutCodeCell = dataRange.getCell(rowNumber, affiliationPutCodeColumnNumber);
+    const affiliationPutCodeCell = dataRange.getCell(
+      rowNumber,
+      affiliationPutCodeColumnNumber,
+    );
     affiliationPutCodeCell.setValue(affiliationPutCode);
   });
 
@@ -158,10 +162,16 @@ function doPost(event) {
   const _ = validateSharedSecret(queryParams["shared_secret"]);
   const orcidId = validateOrcidId(queryParams["orcid_id"]);
   const creditType = validateCreditType(queryParams["credit_type"]);
-  const affiliationPutCode = validateCreditType(queryParams["affiliation_put_code"]);
+  const affiliationPutCode = validateCreditType(
+    queryParams["affiliation_put_code"],
+  );
 
   // Update the specified credits and then get all credits associated with that ORCID ID.
-  const credits = claimCreditsByTypeAndOrcidId(creditType, orcidId, affiliationPutCode);
+  const credits = claimCreditsByTypeAndOrcidId(
+    creditType,
+    orcidId,
+    affiliationPutCode,
+  );
 
   return ContentService.createTextOutput(
     JSON.stringify({ orcid_id: orcidId, credits }),
