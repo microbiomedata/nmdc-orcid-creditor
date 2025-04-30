@@ -26,12 +26,29 @@ COPY . /app
 
 # Use Uvicorn to serve the FastAPI application on port 8000, accepting HTTP requests from any host.
 #
-# Note: We include the `--proxy-headers` option so that Uvicorn will forward HTTP headers indicating
-#       that something upstream (toward the client) is handling HTTPS (in the case of our production
-#       environment, that is Cloudflare and/or a Kubernetes ingress); as opposed to Uvicorn, itself,
-#       handling HTTPS. This fixes an issue where the ORCID Redirect URLs generated within the
-#       FastAPI app were being prefixed with `http://` instead of `https://`.
-#       Reference: https://github.com/encode/starlette/issues/538#issuecomment-518748568
+# Note: We do the following 3 things to make ORCID Login work with this application when we host it
+#       on NERSC's Spin (Kubernetes) platform and access it via Cloudflare:
+#
+#       1. We add the following annotation to the Kubernetes ingress, so that its underlying Nginx server
+#          _forwards_ the `X-Forwarded-*` HTTP headers that it receives from Cloudflare, to Uvicorn:
+#          ```
+#          nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
+#          ```
+#          Reference: https://www.uvicorn.org/deployment/#proxies-and-forwarded-headers
+#
+#       2. We use the environment variable `FORWARDED_ALLOW_IPS` (which is equivalent to the
+#          `--forwarded-allow-ips` CLI option) to configure Uvicorn to _trust_ the `X-Forwarded-*`
+#          headers it receives from the Kubernetes ingress. At the time of this writing, the
+#          environment variable's value is:
+#          ```
+#          10.42.0.0/16,128.55.137.128/25,128.55.206.0/24
+#          ```
+#          Those IP addresses are publicly advertised in the "Configuration for nginx" section of the following NERSC Spin FAQ entry:
+#          https://docs.nersc.gov/services/spin/faq/#why-are-ip-addresses-in-the-10420016-range-showing-in-my-web-service-access-log
+#
+#       3. We include the `--proxy-headers` CLI option (here) so that Uvicorn _uses_ the `X-Forwarded-*`
+#          HTTP headers that it receives from the Kubernetes ingress.
+#          Reference: https://github.com/encode/starlette/issues/538#issuecomment-518748568
 #
 # Reference: https://fastapi.tiangolo.com/deployment/manually/#run-the-server-program
 #
