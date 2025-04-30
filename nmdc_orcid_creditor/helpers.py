@@ -1,6 +1,7 @@
 from typing import Optional
 import re
 
+
 def extract_put_code_from_location_header(location_header: str) -> Optional[str]:
     r"""
     Extracts the affiliation's "put-code" from the specified string;
