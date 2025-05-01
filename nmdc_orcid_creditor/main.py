@@ -198,6 +198,45 @@ async def post_api_credits_claim(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid ORCID access token")
     orcid_id = orcid_access_token["orcid"]
 
+    # Get all of this user's credit(s) from the Google Sheets document via the proxy.
+    all_credits = []
+    try:
+        response = httpx.get(
+            cfg.NMDC_ORCID_CREDITOR_PROXY_URL,
+            params={
+                "shared_secret": cfg.NMDC_ORCID_CREDITOR_PROXY_SHARED_SECRET,
+                "orcid_id": orcid_id,
+            },
+            follow_redirects=True,
+        )
+        res_json = response.json()
+        all_credits = res_json["credits"]
+    except httpx.HTTPError as error:
+        logger.exception(error)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to load credits")
+
+    # Check whether the user has any unclaimed credits of the specified type.
+    #
+    # Note: The credit's `column.CLAIMED_AT` value will be an empty string when
+    #       that cell in the Google Sheets spreadsheet is empty (whether the cell
+    #       was populated and then cleared, or was never populated to begin with).
+    #
+    credits_to_claim = []
+    for credit in all_credits:
+        is_claimed = credit.get("column.CLAIMED_AT").strip() != ""
+        if credit["column.CREDIT_TYPE"] == credit_type and not is_claimed:
+            credits_to_claim.append(credit)
+
+    # If the user has no unclaimed credits of the specified type, return an error response and abort.
+    if len(credits_to_claim) == 0:
+        logger.warning(f"Found no unclaimed credits of type '{credit_type}' for ORCID ID '{orcid_id}'")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"There are no matching credits available to claim.",
+        )
+    else:
+        logger.debug(credits_to_claim)
+
     # Report the credit to ORCID (as a "service" affiliation) and extract the affiliation's "put-code" from the
     # API response. If we fail to do either thing, return an error response and abort (instead of proceeding to
     # record the claim event and "put-code" into the Google Sheets document).
