@@ -237,9 +237,32 @@ async def post_api_credits_claim(
     else:
         logger.debug(credits_to_claim)
 
-    # Report the credit to ORCID (as a "service" affiliation) and extract the affiliation's "put-code" from the
-    # API response. If we fail to do either thing, return an error response and abort (instead of proceeding to
-    # record the claim event and "put-code" into the Google Sheets document).
+    # Note: We assume that the Google Sheets document does not contain multiple rows having the same combination
+    #       of `column.ORCID_ID` and `column.CREDIT_TYPE` values. In case it does, we process only the first row.
+    #
+    # TODO: Add a validation rule to the Google Sheets document to prevent multiple rows from having the same
+    #       combination of `column.ORCID_ID` and `column.CREDIT_TYPE` values. Accounting for duplicates there
+    #       would complicate this code.
+    #
+    # TODO: Also, update existing code and documentation to reflect the same assumption. Some existing code was
+    #       written under the contrary assumption that multiple rows of the spreadsheet _could_ have the same
+    #       combination of `column.ORCID_ID` and `column.CREDIT_TYPE` values.
+    #
+    credit_to_claim = credits_to_claim[0]
+    logger.debug(f"Claiming credit: {credit_to_claim}")
+
+    # Get the affiliation type associated with the credit type.
+    affiliation_type = credit_to_claim.get("column.AFFILIATION_TYPE", "").strip()
+    if affiliation_type not in ["membership", "service"]:
+        logger.error(f"The credit has an invalid affiliation type. Credit: {credit_to_claim}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"The credit has an invalid affiliation type. Please report this to an administrator.",
+        )
+
+    # Create the ("membership" or "service") affiliation on the specified ORCID profile and extract the newly-created
+    # affiliation's "put-code" from the API response. If we fail to do either thing, return an error response and abort
+    # (instead of proceeding to record the claim event and "put-code" into the Google Sheets document).
     #
     # References:
     # - https://github.com/ORCID/orcid-model/blob/master/src/main/resources/record_3.0/README.md#add-record-items
@@ -247,7 +270,7 @@ async def post_api_credits_claim(
     # - https://github.com/ORCID/ORCID-Source/blob/main/orcid-api-web/tutorial/affiliations.md
     #
     try:
-        orcid_api_url = f"{cfg.ORCID_API_BASE_URL}/{orcid_id}/service"
+        orcid_api_url = f"{cfg.ORCID_API_BASE_URL}/{orcid_id}/{affiliation_type}"
         response = httpx.post(
             orcid_api_url,
             headers={"Authorization": f"Bearer {orcid_access_token['access_token']}"},
