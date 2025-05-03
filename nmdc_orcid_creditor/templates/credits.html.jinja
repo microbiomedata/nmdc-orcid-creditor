@@ -158,9 +158,11 @@
                         // Populate the cells in this row.
                         const cells = rowEl.querySelectorAll("td");
                         const creditType = credit["column.CREDIT_TYPE"];
+                        const creditUrl = credit["column.DETAILS_URL"];
                         const claimedAt = formatTimestamp(credit["column.CLAIMED_AT"]);
                         const isClaimed = claimedAt !== "";
                         cells[0].innerHTML = creditType;
+                        cells[0].innerHTML += creditUrl === "" ? "" : `<br /><a href="${creditUrl}" target="_blank" class="text-decoration-none small">Details <i class="bi bi-box-arrow-up-right"></i></a>`;
                         cells[1].innerHTML = claimedAt;
                         if (isClaimed) {
                             cells[2].innerHTML = "<span>None</span>";
