@@ -251,7 +251,7 @@ async def post_api_credits_claim(
     credit_to_claim = credits_to_claim[0]
     logger.debug(f"Claiming credit: {credit_to_claim}")
 
-    # Get the affiliation type associated with the credit type.
+    # Get the affiliation type associated with the credit.
     affiliation_type = credit_to_claim.get("column.AFFILIATION_TYPE", "").strip()
     if affiliation_type not in ["membership", "service"]:
         logger.error(f"The credit has an invalid affiliation type. Credit: {credit_to_claim}")
@@ -259,6 +259,9 @@ async def post_api_credits_claim(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"The credit has an invalid affiliation type. Please report this to an administrator.",
         )
+
+    # Get the URL associated with the credit.
+    credit_url = credit_to_claim.get("column.DETAILS_URL", "").strip()
 
     # Create the ("membership" or "service") affiliation on the specified ORCID profile and extract the newly-created
     # affiliation's "put-code" from the API response. If we fail to do either thing, return an error response and abort
@@ -289,7 +292,9 @@ async def post_api_credits_claim(
                         "disambiguation-source": "ROR",
                     },
                 },
-                "url": {"value": "https://microbiomedata.org/"},
+                # Note: Submitting a "url.value" value of "" is OK. In that situation,
+                #       ORCID will not display the "URL" field for this affiliation.
+                "url": {"value": credit_url},
             },
         )
 
