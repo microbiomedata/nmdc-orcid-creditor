@@ -1,5 +1,10 @@
-from typing import Optional
+from typing import Optional, Tuple
 import re
+from datetime import datetime
+import logging
+
+
+logger = logging.getLogger("uvicorn")
 
 
 def extract_put_code_from_location_header(location_header: str) -> Optional[str]:
@@ -31,3 +36,47 @@ def extract_put_code_from_location_header(location_header: str) -> Optional[str]
         the_put_code = match_obj.group(1)
 
     return the_put_code
+
+
+def extract_year_month_day_from_datetime_string(date_str: str) -> Tuple[str, str, str]:
+    r"""
+    Extracts year, month, and day strings from the specified datetime string and returns
+    them as a 3-item tuple. If the specified datetime string is not in ISO 8601 format,
+    the function will raise a `ValueError` exception.
+
+    Note: In Python 3.11, the `datetime.fromisoformat` function became tolerant of
+          more input formats. For example, it became tolerant of the "Z" suffix.
+
+    Real-world example (uses real string received from `nmdc-orcid-creditor-proxy`):
+    >>> extract_year_month_day_from_datetime_string("2023-01-23T08:00:00.000Z")
+    ('2023', '01', '23')
+
+    Other valid input examples:
+    >>> extract_year_month_day_from_datetime_string("2023-01-23")
+    ('2023', '01', '23')
+    >>> extract_year_month_day_from_datetime_string("2023-01-23T12:00:00Z")
+    ('2023', '01', '23')
+    >>> extract_year_month_day_from_datetime_string("2023-01-23T12:00:00+00:00")
+    ('2023', '01', '23')
+    >>> extract_year_month_day_from_datetime_string("2023-01-23T12:00:00.123456Z")
+    ('2023', '01', '23')
+    >>> extract_year_month_day_from_datetime_string("2023-01-23T12:00:00.123456+00:00")
+    ('2023', '01', '23')
+
+    Invalid input examples:
+    >>> extract_year_month_day_from_datetime_string("")
+    Traceback (most recent call last):
+    ...
+    ValueError: Invalid isoformat string: ''
+    """
+    year, month, day = ("", "", "")
+
+    # Reference: https://docs.python.org/3/library/datetime.html#datetime.datetime.fromisoformat
+    datetime_obj = datetime.fromisoformat(date_str)
+
+    # Reference: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
+    year = datetime_obj.strftime("%Y")
+    month = datetime_obj.strftime("%m")
+    day = datetime_obj.strftime("%d")
+
+    return year, month, day

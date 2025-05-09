@@ -10,7 +10,7 @@ documentation = "https://github.com/microbiomedata/nmdc-orcid-creditor"
 keywords = ["orcid", "credit"]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.12"
 fastapi = { extras = ["standard"], version = "^0.115.0" }
 # We use `pydantic-settings` to access environment variables.
 # Docs: https://fastapi.tiangolo.com/advanced/settings/#pydantic-settings
