@@ -11,7 +11,10 @@ from authlib.integrations.starlette_client import OAuth, OAuthError
 import httpx
 
 from nmdc_orcid_creditor.config import cfg
-from nmdc_orcid_creditor.helpers import extract_put_code_from_location_header
+from nmdc_orcid_creditor.helpers import (
+    extract_put_code_from_location_header,
+    extract_year_month_day_from_datetime_string,
+)
 
 # Enable debug output on the console.
 logger = logging.getLogger("uvicorn")
@@ -260,6 +263,21 @@ async def post_api_credits_claim(
             detail=f"The credit has an invalid affiliation type. Please report this to an administrator.",
         )
 
+    # Get the start date and end date associated with the credit; and parse them into year, month, and day strings.
+    start_date = credit_to_claim.get("column.START_DATE", "").strip()
+    end_date = credit_to_claim.get("column.END_DATE", "").strip()
+    try:
+        start_year, start_month, start_day = extract_year_month_day_from_datetime_string(start_date)
+        end_year, end_month, end_day = extract_year_month_day_from_datetime_string(end_date)
+    except ValueError as error:
+        logger.error(f"Failed to parse start date or end date. Details: {error}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"The credit has an invalid date associated with it. Please report this to an administrator.",
+        )
+    logger.debug(f"Parsed {start_date=} into {start_year=}, {start_month=}, {start_day=}")
+    logger.debug(f"Parsed {end_date=} into {end_year=}, {end_month=}, {end_day=}")
+
     # Get the URL associated with the credit.
     credit_url = credit_to_claim.get("column.DETAILS_URL", "").strip()
 
@@ -280,10 +298,14 @@ async def post_api_credits_claim(
             json={
                 # TODO: Consider including a department and other information (see payload examples in ORCID docs).
                 "role-title": f"{credit_type}",
-                # FIXME: Obtain the date from the spreadsheet (or omit it?).
-                "start-date": {"year": {"value": "1970"}, "month": {"value": "01"}, "day": {"value": "01"}},
-                # FIXME: Obtain the date from the spreadsheet (or omit it?).
-                "end-date": {"year": {"value": "2024"}, "month": {"value": "12"}, "day": {"value": "31"}},
+                #
+                # Note: The ORCID API does allow the top-level "start-date" and "end-date" fields to be omitted.
+                #       When "start-date" is omitted, the person's ORCID profile will show only the end date (e.g. "2023-12-31 | Team member").
+                #       When "end-date" is omitted, the person's ORCID profile will append "to present"      (e.g. "2022-01-01 to present | Team member").
+                #       When both are omitted, the person's ORCID profile will not show any dates            (e.g. "Team member").
+                #
+                "start-date": {"year": {"value": start_year}, "month": {"value": start_month}, "day": {"value": start_day}},
+                "end-date": {"year": {"value": end_year}, "month": {"value": end_month}, "day": {"value": end_day}},
                 "organization": {
                     "name": "National Microbiome Data Collaborative",
                     "address": {"city": "Berkeley", "region": "California", "country": "US"},
