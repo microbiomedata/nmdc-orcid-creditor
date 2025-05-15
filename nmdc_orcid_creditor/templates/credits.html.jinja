@@ -78,12 +78,64 @@
                 };
 
                 /**
-                 * Helper function that formats the specified timestamp as a UTC string.
+                 * Helper function that formats the specified timestamp as a string.
+                 *
+                 * Note: The format of the string depends upon the user's locale. For example,
+                 *       in the "en-US" locale, the format is "May 1, 2025 at 1:23 PM".
+                 *
+                 * Reference: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat
                  */
                 const formatTimestamp = (rawTimestamp) => {
+                    // Note: We pass `undefined` as the locale, so the formatter uses the web browser's default locale.
+                    const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                    });
                     const date = new Date(rawTimestamp.trim());
                     if (!isNaN(date.valueOf())) {
-                        return date.toUTCString();
+                        return dateTimeFormatter.format(date);
+                    } else {
+                        return "";
+                    }
+                };
+
+                /**
+                 * Helper function that formats the specified combination of timestamps
+                 * as a string whose format resembles the format ORCID would use when
+                 * displaying an affiliation having those same start and end dates.
+                 *
+                 * Note: Through experimentation, we found that ORCID uses these formats:
+                 *       1. "1999-01-01 to 2025-12-31", when both dates are defined
+                 *       2. "1999-01-01 to present", when only the start date is defined
+                 *       3. "2025-12-31", when only the end date is defined
+                 *       4. "", when neither date is defined
+                 *
+                 *       In the case of this function, the format of the _date_ portion(s)
+                 *       of the string depends upon the web browser's default locale. For
+                 *       example, if the web browser's default locale is "en-US", the
+                 *       _date_ portion(s) of the string will be formatted as "12/31/2025",
+                 *       not as "2025-12-31".
+                 */
+                const formatDateRange = (startTimestamp = "", endTimestamp = "") => {
+                    // Note: We pass `undefined` as the locale, so the formatter uses the web browser's default locale.
+                    const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                    });
+                    const startDate = new Date(startTimestamp.trim());
+                    const endDate = new Date(endTimestamp.trim());
+                    const hasStartDate = !isNaN(startDate.valueOf());
+                    const hasEndDate = !isNaN(endDate.valueOf());
+                    if (hasStartDate && hasEndDate) {
+                        return `${dateTimeFormatter.format(startDate)} to ${dateTimeFormatter.format(endDate)}`;
+                    } else if (hasStartDate && !hasEndDate) {
+                        return `${dateTimeFormatter.format(startDate)} to present`;
+                    } else if (!hasStartDate && hasEndDate) {
+                        return dateTimeFormatter.format(endDate);
                     } else {
                         return "";
                     }
@@ -158,10 +210,12 @@
                         // Populate the cells in this row.
                         const cells = rowEl.querySelectorAll("td");
                         const creditType = credit["column.CREDIT_TYPE"];
+                        const dateRange = formatDateRange(credit["column.START_DATE"], credit["column.END_DATE"]);
                         const creditUrl = credit["column.DETAILS_URL"];
                         const claimedAt = formatTimestamp(credit["column.CLAIMED_AT"]);
                         const isClaimed = claimedAt !== "";
                         cells[0].innerHTML = creditType;
+                        cells[0].innerHTML += dateRange === "" ? "" : `<br /><span class="small text-muted">${dateRange}</span>`;
                         cells[0].innerHTML += creditUrl === "" ? "" : `<br /><a href="${creditUrl}" target="_blank" class="text-decoration-none small">Details <i class="bi bi-box-arrow-up-right"></i></a>`;
                         cells[1].innerHTML = claimedAt;
                         if (isClaimed) {
