@@ -54,6 +54,49 @@ function test_markCreditAsClaimed() {
 }
 
 /**
+ * Helper function that compares two values, each of which may be either (a) an empty string,
+ * or (b) a JavaScript Date object. Returns `true` if either both values are empty strings, or
+ * both values represent the same millisecond in time.
+ */
+function compareOptionalDates(optionalDateA, optionalDateB) {
+  const areBothDatesEmptyStrings = optionalDateA === "" && optionalDateB === "";
+  const isOnlyOneDateEmptyString =
+    (optionalDateA === "" && optionalDateB !== "") ||
+    (optionalDateA !== "" && optionalDateB === "");
+  if (areBothDatesEmptyStrings) {
+    return true;
+  } else if (isOnlyOneDateEmptyString) {
+    return false;
+  } else {
+    return optionalDateA.getTime() === optionalDateB.getTime();
+  }
+}
+
+function test_compareOptionalDates() {
+  Logger.log(compareOptionalDates("", "")); // true
+  Logger.log(compareOptionalDates("", new Date())); // false
+  Logger.log(compareOptionalDates(new Date(), "")); // false
+  Logger.log(
+    compareOptionalDates(new Date("2023-01-01"), new Date("2023-01-01")),
+  ); // true
+  Logger.log(
+    compareOptionalDates(new Date("2023-01-01"), new Date("2023-01-02")),
+  ); // false
+  Logger.log(
+    compareOptionalDates(
+      new Date("2023-01-01T00:00:00Z"),
+      new Date("2023-01-01T00:00:00Z"),
+    ),
+  ); // true
+  Logger.log(
+    compareOptionalDates(
+      new Date("2023-01-01T00:00:00Z"),
+      new Date("2023-01-01T00:00:01Z"),
+    ),
+  ); // false
+}
+
+/**
  * Marks a single, unclaimed credit in the Google Sheets document as having been claimed.
  *
  * Finds the first row describing an unclaimed credit having the specified combination
@@ -67,10 +110,16 @@ function test_markCreditAsClaimed() {
 function markCreditAsClaimed(
   creditType,
   orcidId,
-  startDate,
-  endDate,
+  startDateStr,
+  endDateStr,
   affiliationPutCode,
 ) {
+  // If either the start date or end date is not an empty string, create
+  // a JavaScript Date object from it. Otherwise, create an empty string
+  // from it.
+  const startDate = startDateStr === "" ? "" : new Date(startDateStr);
+  const endDate = endDateStr === "" ? "" : new Date(endDateStr);
+
   const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
   const sheet = spreadsheet.getSheetByName(CONFIG.SHEET_NAME);
 
@@ -94,16 +143,16 @@ function markCreditAsClaimed(
     columnNames.indexOf("column.AFFILIATION_PUT_CODE") + 1;
 
   // Find the 1-based row _number_ of the first row having the specified combination
-  // of {credit type, ORCID ID, start date, end date} that is not been claimed yet.
+  // of {credit type, ORCID ID, start date, end date} that has not been claimed yet.
   let creditRowNumber = null;
   for (let rowIndex = 0; rowIndex < values.length; rowIndex++) {
     const row = values[rowIndex];
     if (
+      row[claimedAtColumnIndex] === "" && // unclaimed
       row[orcidIdColumnIndex] === orcidId &&
       row[creditTypeColumnIndex] === creditType &&
-      row[startDateColumnIndex] === startDate &&
-      row[endDateColumnIndex] === endDate &&
-      row[claimedAtColumnIndex] === "" // unclaimed
+      compareOptionalDates(row[startDateColumnIndex], startDate) &&
+      compareOptionalDates(row[endDateColumnIndex], endDate)
     ) {
       creditRowNumber = rowIndex + 1; // Note: Google Sheets row numbers are 1-based.
       break;
@@ -184,12 +233,19 @@ function validateCreditType(creditType) {
 /**
  * Sends an error HTTP response if the specified optional timestamp is invalid.
  *
- * Note: Checks syntax only—does not check for presence in spreadsheet. Also,
- *       an empty string are allowed (we use for credits that lack a start date
- *       and/or end date).
+ * References:
+ * - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date#date_time_string_format
+ * - https://tc39.es/ecma262/multipage/numbers-and-dates.html#sec-date-time-string-format
+ *
+ * Note: Checks syntax only—does not check for presence in spreadsheet. Also, an empty string
+ *       is allowed (we use that for credits that lack a start date and/or end date).
  */
 function validateOptionalTimestamp(optionalTimestamp) {
-  if (typeof optionalTimestamp === "string") {
+  if (
+    typeof optionalTimestamp === "string" &&
+    // It's either an empty string or a parsable date string.
+    (optionalTimestamp === "" || !isNaN(Date.parse(optionalTimestamp)))
+  ) {
     return optionalTimestamp;
   } else {
     return ContentService.createTextOutput(
