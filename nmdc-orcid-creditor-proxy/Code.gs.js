@@ -9,7 +9,7 @@
 const orcidRegex = new RegExp(/^\d{4}-\d{4}-\d{4}-\d{3}[0-9X]$/);
 
 /**
- * Returns the credits associated with the specified ORCID ID,
+ * Returns all credits associated with the specified ORCID ID,
  * from the Google Sheets document.
  */
 function getCreditsByOrcidId(orcidId) {
@@ -41,19 +41,85 @@ function getCreditsByOrcidId(orcidId) {
   return labeledCredits;
 }
 
-function test_claimCreditsByTypeAndOrcidId() {
+function test_markCreditAsClaimed() {
   Logger.log(
-    claimCreditsByTypeAndOrcidId("Ambassador 2023", "0009-0002-5962-1947"),
+    markCreditAsClaimed(
+      "Ambassador 2023",
+      "0009-0002-5962-1947",
+      "2023-02-14T08:00:00.000Z",
+      "2023-07-04T08:00:00.000Z",
+      "12345",
+    ),
   );
 }
 
 /**
- * Claims the credits having the specified combination of credit type and ORCID ID,
- * in the Google Sheets document, storing the specified affiliation "put-code" on
- * those rows. Then, returns the credits associated with the specified ORCID ID,
- * which will reflect any timestamp updates made by this function.
+ * Helper function that compares two values, each of which may be either (a) an empty string,
+ * or (b) a JavaScript Date object. Returns `true` if either both values are empty strings, or
+ * both values represent the same millisecond in time.
  */
-function claimCreditsByTypeAndOrcidId(creditType, orcidId, affiliationPutCode) {
+function compareOptionalDates(optionalDateA, optionalDateB) {
+  const areBothDatesEmptyStrings = optionalDateA === "" && optionalDateB === "";
+  const isOnlyOneDateEmptyString =
+    (optionalDateA === "" && optionalDateB !== "") ||
+    (optionalDateA !== "" && optionalDateB === "");
+  if (areBothDatesEmptyStrings) {
+    return true;
+  } else if (isOnlyOneDateEmptyString) {
+    return false;
+  } else {
+    return optionalDateA.getTime() === optionalDateB.getTime();
+  }
+}
+
+function test_compareOptionalDates() {
+  Logger.log(compareOptionalDates("", "")); // true
+  Logger.log(compareOptionalDates("", new Date())); // false
+  Logger.log(compareOptionalDates(new Date(), "")); // false
+  Logger.log(
+    compareOptionalDates(new Date("2023-01-01"), new Date("2023-01-01")),
+  ); // true
+  Logger.log(
+    compareOptionalDates(new Date("2023-01-01"), new Date("2023-01-02")),
+  ); // false
+  Logger.log(
+    compareOptionalDates(
+      new Date("2023-01-01T00:00:00Z"),
+      new Date("2023-01-01T00:00:00Z"),
+    ),
+  ); // true
+  Logger.log(
+    compareOptionalDates(
+      new Date("2023-01-01T00:00:00Z"),
+      new Date("2023-01-01T00:00:01Z"),
+    ),
+  ); // false
+}
+
+/**
+ * Marks a single, unclaimed credit in the Google Sheets document as having been claimed.
+ *
+ * Finds the first row describing an unclaimed credit having the specified combination
+ * of {credit type, ORCID ID, start date, end date} in the Google Sheets document, and
+ * updates its "claimed at" timestamp (to indicate it's been claimed) and stores the
+ * specified affiliation "put-code" on that row.
+ *
+ * Returns all credits associated with the specified ORCID ID, which will reflect
+ * any updates made by this function.
+ */
+function markCreditAsClaimed(
+  creditType,
+  orcidId,
+  startDateStr,
+  endDateStr,
+  affiliationPutCode,
+) {
+  // If either the start date or end date is not an empty string, create
+  // a JavaScript Date object from it. Otherwise, create an empty string
+  // from it.
+  const startDate = startDateStr === "" ? "" : new Date(startDateStr);
+  const endDate = endDateStr === "" ? "" : new Date(endDateStr);
+
   const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
   const sheet = spreadsheet.getSheetByName(CONFIG.SHEET_NAME);
 
@@ -61,47 +127,60 @@ function claimCreditsByTypeAndOrcidId(creditType, orcidId, affiliationPutCode) {
   const dataRange = sheet.getDataRange();
   const values = dataRange.getValues();
 
-  // Determine the indexes of the relevant columns.
+  // Determine the 0-based indexes of columns relevant to this operation.
   const columnNames = values[0];
   const creditTypeColumnIndex = columnNames.indexOf("column.CREDIT_TYPE");
   const orcidIdColumnIndex = columnNames.indexOf("column.ORCID_ID");
+  const startDateColumnIndex = columnNames.indexOf("column.START_DATE");
+  const endDateColumnIndex = columnNames.indexOf("column.END_DATE");
+  const claimedAtColumnIndex = columnNames.indexOf("column.CLAIMED_AT");
 
-  // Determine the column number of the column indicating when the credit was claimed,
-  // and the column number of the column indicating the affiliation's "put-code".
+  // Determine the 1-based column _numbers_ of (a) the column indicating when the
+  // credit was claimed, and (b) the column indicating the affiliation's "put-code".
   // Note: Google Sheets column numbers are 1-based.
-  const claimedAtColumnNumber = columnNames.indexOf("column.CLAIMED_AT") + 1;
+  const claimedAtColumnNumber = claimedAtColumnIndex + 1;
   const affiliationPutCodeColumnNumber =
     columnNames.indexOf("column.AFFILIATION_PUT_CODE") + 1;
 
-  // Find the row numbers of the rows having the specified credit type and ORCID ID pair.
-  let rowNumbers = [];
-  values.forEach((row, index) => {
+  // Find the 1-based row _number_ of the first row having the specified combination
+  // of {credit type, ORCID ID, start date, end date} that has not been claimed yet.
+  let creditRowNumber = null;
+  for (let rowIndex = 0; rowIndex < values.length; rowIndex++) {
+    const row = values[rowIndex];
     if (
+      row[claimedAtColumnIndex] === "" && // unclaimed
       row[orcidIdColumnIndex] === orcidId &&
-      row[creditTypeColumnIndex] === creditType
+      row[creditTypeColumnIndex] === creditType &&
+      compareOptionalDates(row[startDateColumnIndex], startDate) &&
+      compareOptionalDates(row[endDateColumnIndex], endDate)
     ) {
-      rowNumbers.push(index + 1); // Note: Google Sheets row numbers are 1-based.
+      creditRowNumber = rowIndex + 1; // Note: Google Sheets row numbers are 1-based.
+      break;
     }
-  });
+  }
 
   // Generate a timestamp representing the current date and time (now).
   const claimedAt = new Date();
 
-  // Write that timestamp and the "put-code" to each of those rows,
-  // in the column that indicates when the credit was claimed.
-  rowNumbers.forEach((rowNumber) => {
-    const claimedAtCell = dataRange.getCell(rowNumber, claimedAtColumnNumber);
-    claimedAtCell.setValue(claimedAt);
-
+  // If a credit row number was found, write the following pieces of information to that row:
+  // (a) that timestamp (so we know when the credit was claimed); and
+  // (b) the specified "put-code" (so we can update the created affiliation later).
+  if (typeof creditRowNumber === "number") {
+    const claimedAtCell = dataRange.getCell(
+      creditRowNumber,
+      claimedAtColumnNumber,
+    );
     const affiliationPutCodeCell = dataRange.getCell(
-      rowNumber,
+      creditRowNumber,
       affiliationPutCodeColumnNumber,
     );
-    affiliationPutCodeCell.setValue(affiliationPutCode);
-  });
 
-  // Return the updated credits associated with this ORCID ID.
-  // Note: This will include the recently-written timestamps.
+    claimedAtCell.setValue(claimedAt);
+    affiliationPutCodeCell.setValue(affiliationPutCode);
+  }
+
+  // Return all credits associated with this ORCID ID.
+  // Note: This will reflect any updates made by this function.
   return getCreditsByOrcidId(orcidId);
 }
 
@@ -139,7 +218,7 @@ function validateOrcidId(orcidId) {
 /**
  * Sends an error HTTP response if the specified credit type is invalid.
  *
- * Note: Checks syntax only—does not check for presence in spreadshet.
+ * Note: Checks syntax only—does not check for presence in spreadsheet.
  */
 function validateCreditType(creditType) {
   if (typeof creditType === "string" && creditType !== "") {
@@ -147,6 +226,32 @@ function validateCreditType(creditType) {
   } else {
     return ContentService.createTextOutput(
       JSON.stringify({ error: "Bad request. Invalid credit_type." }),
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Sends an error HTTP response if the specified optional timestamp is invalid.
+ *
+ * References:
+ * - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date#date_time_string_format
+ * - https://tc39.es/ecma262/multipage/numbers-and-dates.html#sec-date-time-string-format
+ *
+ * Note: Checks syntax only—does not check for presence in spreadsheet. Also, an empty string
+ *       is allowed (we use that for credits that lack a start date and/or end date).
+ */
+function validateOptionalTimestamp(optionalTimestamp) {
+  if (
+    typeof optionalTimestamp === "string" &&
+    // It's either an empty string or a parsable date string.
+    (optionalTimestamp === "" || !isNaN(Date.parse(optionalTimestamp)))
+  ) {
+    return optionalTimestamp;
+  } else {
+    return ContentService.createTextOutput(
+      JSON.stringify({
+        error: "Bad request. Invalid start_date and/or end_date.",
+      }),
     ).setMimeType(ContentService.MimeType.JSON);
   }
 }
@@ -162,14 +267,20 @@ function doPost(event) {
   const _ = validateSharedSecret(queryParams["shared_secret"]);
   const orcidId = validateOrcidId(queryParams["orcid_id"]);
   const creditType = validateCreditType(queryParams["credit_type"]);
+  const startDate = validateOptionalTimestamp(queryParams["start_date"]);
+  const endDate = validateOptionalTimestamp(queryParams["end_date"]);
   const affiliationPutCode = validateCreditType(
     queryParams["affiliation_put_code"],
   );
 
-  // Update the specified credits and then get all credits associated with that ORCID ID.
-  const credits = claimCreditsByTypeAndOrcidId(
+  // Update the specified credit, if it exists, and then get all credits
+  // associated with that ORCID ID (done in that order, so that the credits
+  // reflect the update to the specified one).
+  const credits = markCreditAsClaimed(
     creditType,
     orcidId,
+    startDate,
+    endDate,
     affiliationPutCode,
   );
 
@@ -189,7 +300,7 @@ function doGet(event) {
   const _ = validateSharedSecret(queryParams["shared_secret"]);
   const orcidId = validateOrcidId(queryParams["orcid_id"]);
 
-  // Get the credits associated with the specified ORCID ID.
+  // Get all credits associated with the specified ORCID ID.
   const credits = getCreditsByOrcidId(orcidId);
 
   return ContentService.createTextOutput(

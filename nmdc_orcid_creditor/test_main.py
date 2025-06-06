@@ -77,7 +77,11 @@ def test_get_api_credits():
 
 def test_post_api_credits_claim():
     # Test: If request lacks valid ORCID access token, returns an HTTP 401 response.
-    response = client.post("/api/credits/claim", json=dict(credit_type="foo"))
+    response = client.post("/api/credits/claim", json=dict(
+        credit_type="foo",
+        start_date="2023-01-01T00:00:00Z",
+        end_date="2023-12-31T23:59:59Z",
+    ))
     assert response.status_code == 401
 
     # TODO: Add test involving a sufficient request (one having a valid ORCID access token).

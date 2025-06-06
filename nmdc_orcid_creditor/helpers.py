@@ -48,6 +48,7 @@ def extract_year_month_day_from_datetime_string(date_str: str) -> Tuple[str, str
           more input formats. For example, it became tolerant of the "Z" suffix.
 
     Real-world example (uses real string received from `nmdc-orcid-creditor-proxy`):
+    Reference: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date#date_time_string_format
     >>> extract_year_month_day_from_datetime_string("2023-01-23T08:00:00.000Z")
     ('2023', '01', '23')
 
