@@ -190,18 +190,21 @@ async def post_api_credits_claim(
     # - https://fastapi.tiangolo.com/tutorial/body-multiple-params/#multiple-body-parameters (docs)
     # - https://stackoverflow.com/a/70636163 (example)
     #
-    credit_type: Annotated[str, Body(..., embed=True)],
+    credit_type: Annotated[str, Body(title="Credit Type", description="The type of the credit")],
+    start_date: Annotated[str, Body(title="Start Date", description="The start date, if any, of the credit")],
+    end_date: Annotated[str, Body(title="End Date", description="The end date, if any, of the credit")],
     orcid_access_token: dict = Depends(get_orcid_access_token),
 ):
     r"""
-    Claims all unclaimed credits that both have the specified type and are associated with the specified ORCID ID
+    Claim a credit associated with the signed-in user's ORCID ID, having the specified combination
+    of credit type, start date, and end date
     """
 
     if orcid_access_token is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid ORCID access token")
     orcid_id = orcid_access_token["orcid"]
 
-    # Get all of this user's credit(s) from the Google Sheets document via the proxy.
+    # Get all of this user's credits from the Google Sheets document via the proxy.
     all_credits = []
     try:
         response = httpx.get(
@@ -218,28 +221,13 @@ async def post_api_credits_claim(
         logger.exception(error)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to load credits")
 
-    # Check whether the user has any unclaimed credits of the specified type.
+    # Check whether the user has any unclaimed credits having the specified combination
+    # of {ORCID ID, credit type, start date, end date} values.
     #
     # Note: The credit's `column.CLAIMED_AT` value will be an empty string when
-    #       that cell in the Google Sheets spreadsheet is empty (whether the cell
-    #       was populated and then cleared, or was never populated to begin with).
+    #       that cell in the Google Sheets spreadsheet is empty (which we use
+    #       to indicate that the credit has not been claimed).
     #
-    credits_to_claim = []
-    for credit in all_credits:
-        is_claimed = credit.get("column.CLAIMED_AT").strip() != ""
-        if credit["column.CREDIT_TYPE"] == credit_type and not is_claimed:
-            credits_to_claim.append(credit)
-
-    # If the user has no unclaimed credits of the specified type, return an error response and abort.
-    if len(credits_to_claim) == 0:
-        logger.warning(f"Found no unclaimed credits of type '{credit_type}' for ORCID ID '{orcid_id}'")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"There are no matching credits available to claim.",
-        )
-    else:
-        logger.debug(credits_to_claim)
-
     # Note: We assume that the Google Sheets document does not contain multiple rows having the same combination
     #       of `column.ORCID_ID` and `column.CREDIT_TYPE` values. In case it does, we process only the first row.
     #
@@ -251,7 +239,26 @@ async def post_api_credits_claim(
     #       written under the contrary assumption that multiple rows of the spreadsheet _could_ have the same
     #       combination of `column.ORCID_ID` and `column.CREDIT_TYPE` values.
     #
-    credit_to_claim = credits_to_claim[0]
+    credit_to_claim = None
+    for credit in all_credits:
+        if (
+            credit.get("column.ORCID_ID") == orcid_id
+            and credit.get("column.CREDIT_TYPE") == credit_type
+            and credit.get("column.START_DATE") == start_date
+            and credit.get("column.END_DATE") == end_date
+            and credit.get("column.CLAIMED_AT") == ""
+        ):
+            credit_to_claim = credit
+            break
+
+    # If the user has no such unclaimed credits, return an error response and abort.
+    if credit_to_claim is None:
+        logger.warning(f"Found no unclaimed credits of type '{credit_type}' for ORCID ID '{orcid_id}'")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"There are no matching credits available to claim.",
+        )
+
     logger.debug(f"Claiming credit: {credit_to_claim}")
 
     # Get the affiliation type associated with the credit.
@@ -282,7 +289,7 @@ async def post_api_credits_claim(
         logger.error(f"Failed to parse start date or end date. Details: {error}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"The credit has an invalid date associated with it. Please report this to an administrator.",
+            detail="The credit has an invalid date associated with it. Please report this to an administrator.",
         )
 
     # Get the URL associated with the credit.
@@ -355,6 +362,8 @@ async def post_api_credits_claim(
                 "shared_secret": cfg.NMDC_ORCID_CREDITOR_PROXY_SHARED_SECRET,
                 "orcid_id": orcid_id,
                 "credit_type": credit_type,
+                "start_date": credit_to_claim.get("column.START_DATE"),  # uses the value verbatim
+                "end_date": credit_to_claim.get("column.END_DATE"),  # uses the value verbatim
                 "affiliation_put_code": affiliation_put_code,
             },
             follow_redirects=True,

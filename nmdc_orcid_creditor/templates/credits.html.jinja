@@ -162,7 +162,7 @@
                 /**
                  * Callback function that claims a credit via the API and manages UI state accordingly.
                  */
-                const handleClaimCredit = async (buttonEl, creditType) => {
+                const handleClaimCredit = async (buttonEl, creditType, startDate, endDate) => {
                     // Disable all claim buttons.
                     disableClaimButtons();
 
@@ -174,7 +174,11 @@
                         const response = await fetch(url, {
                             method: "POST",
                             headers: {"Content-Type": "application/json"},
-                            body: JSON.stringify({credit_type: creditType}),
+                            body: JSON.stringify({
+                                credit_type: creditType,
+                                start_date: startDate,
+                                end_date: endDate,
+                            }),
                         });
                         if (response.ok) {
                             const json = await response.json();
@@ -210,7 +214,9 @@
                         // Populate the cells in this row.
                         const cells = rowEl.querySelectorAll("td");
                         const creditType = credit["column.CREDIT_TYPE"];
-                        const dateRange = formatDateRange(credit["column.START_DATE"], credit["column.END_DATE"]);
+                        const startDate = credit["column.START_DATE"];
+                        const endDate = credit["column.END_DATE"];
+                        const dateRange = formatDateRange(startDate, endDate);
                         const creditUrl = credit["column.DETAILS_URL"];
                         const claimedAt = formatTimestamp(credit["column.CLAIMED_AT"]);
                         const isClaimed = claimedAt !== "";
@@ -223,7 +229,7 @@
                         } else {
                             // Set up the claim button.
                             const buttonEl = cells[2].querySelector("button");
-                            buttonEl.addEventListener("click", (event) => handleClaimCredit(event.currentTarget, creditType));
+                            buttonEl.addEventListener("click", (event) => handleClaimCredit(event.currentTarget, creditType, startDate, endDate));
                             cells[2].innerHTML = "";
                             cells[2].appendChild(buttonEl);
                         }
