@@ -24,9 +24,7 @@ jobs:
       - name: Set up Python  # Docs: https://github.com/actions/setup-python
         uses: actions/setup-python@v5
         with:
-          # Specify a Python version that satisfies the `tool.poetry.dependencies.python`
-          # version requirement specified in `pyproject.toml`.
-          python-version: "3.12"
+          python-version-file: "pyproject.toml"  # reads version requirement from `pyproject.toml`
       - name: Install Poetry  # Docs: https://github.com/snok/install-poetry
         uses: snok/install-poetry@v1
       - name: Install dependencies  # Docs: https://python-poetry.org/docs/cli/#install
