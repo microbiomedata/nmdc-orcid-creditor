@@ -1,6 +1,22 @@
 {% extends "base.html.jinja" %}
 {% block body %}
     <div class="block-body-credits">
+        <div class="toast-container position-fixed top-0 end-0 p-3">
+            <!-- This template, itself, is invisible. Elements will be created from it via JavaScript. -->
+            <template>
+                <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <img src="{{ url_for("static", path="/favicon.png") }}"
+                             class="rounded me-2"
+                             alt="NMDC Logo"
+                             height="24"
+                             width="24">
+                        <strong class="me-auto"></strong>
+                    </div>
+                    <div class="toast-body"></div>
+                </div>
+            </template>
+        </div>
         <span class="alert-container">
             <!-- This template, itself, is invisible. Elements will be created from it via JavaScript. -->
             <template>
@@ -75,6 +91,39 @@
                     const messageEl = alertEl.querySelector(".message");
                     messageEl.innerHTML = message;
                     alertContainerEl.appendChild(alertEl);
+                };
+
+                /**
+                * Temporarily show a toast having the specified body and header text.
+                *
+                * Reference: https://getbootstrap.com/docs/5.3/components/toasts/
+                */
+                const showToast = (bodyText, headerText = "Notification") => {
+                    // Get references to the HTML template, fragment, and other elements involved.
+                    const toastContainerEl = blockEl.querySelector(".toast-container");
+                    const templateEl = toastContainerEl.querySelector("template");
+                    const toastFragment = templateEl.content.cloneNode(true);
+                    const bodyEl = toastFragment.querySelector(".toast-body");
+                    const headerEl = toastFragment.querySelector(".toast-header > strong");
+
+                    // Set the body text and header text.
+                    bodyEl.textContent = bodyText;
+                    headerEl.textContent = headerText;
+
+                    // Add the toast to the container element, then get the toast as an _element_.
+                    // Note: Bootstrap's `Toast` constructor does not work when passed a fragment.
+                    toastContainerEl.appendChild(toastFragment);
+                    const toastEl = toastContainerEl.lastElementChild;
+
+                    // Configure the toast to be removed from the DOM once it's hidden from view.
+                    // Note: This is in an attempt to prevent memory leaks.
+                    toastEl.addEventListener("hidden.bs.toast", () => {
+                        toastContainerEl.removeChild(toastEl);
+                    });
+
+                    // Bootstrap-ify the toast and show it.
+                    const bootstrapToast = new bootstrap.Toast(toastEl);
+                    bootstrapToast.show();
                 };
 
                 /**
@@ -182,7 +231,8 @@
                         });
                         if (response.ok) {
                             const json = await response.json();
-                            displayCredits(json["credits"])
+                            displayCredits(json["credits"]);
+                            showToast("Credit claimed successfully.", "Claimed");
                         } else {
                             throw new Error(`Response status: ${response.status}`);
                         }
