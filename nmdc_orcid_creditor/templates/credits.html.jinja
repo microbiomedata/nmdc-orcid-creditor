@@ -94,21 +94,21 @@
                 };
 
                 /**
-                * Temporarily show a toast having the specified header text and body text.
+                * Temporarily show a toast having the specified body and header text.
                 *
                 * Reference: https://getbootstrap.com/docs/5.3/components/toasts/
                 */
-                const showToast = (headerText, bodyText) => {
+                const showToast = (bodyText, headerText = "Notification") => {
                     // Get references to the HTML template, fragment, and other elements involved.
                     const toastContainerEl = blockEl.querySelector(".toast-container");
                     const templateEl = toastContainerEl.querySelector("template");
                     const toastFragment = templateEl.content.cloneNode(true);
-                    const headerEl = toastFragment.querySelector(".toast-header > strong");
                     const bodyEl = toastFragment.querySelector(".toast-body");
+                    const headerEl = toastFragment.querySelector(".toast-header > strong");
 
-                    // Set the header text and body text.
-                    headerEl.textContent = headerText;
+                    // Set the body text and header text.
                     bodyEl.textContent = bodyText;
+                    headerEl.textContent = headerText;
 
                     // Add the toast to the container element, then get the toast as an _element_.
                     // Note: Bootstrap's `Toast` constructor does not work when passed a fragment.
@@ -232,7 +232,7 @@
                         if (response.ok) {
                             const json = await response.json();
                             displayCredits(json["credits"]);
-                            showToast("Claimed", "Credit claimed successfully.");
+                            showToast("Credit claimed successfully.", "Claimed");
                         } else {
                             throw new Error(`Response status: ${response.status}`);
                         }
