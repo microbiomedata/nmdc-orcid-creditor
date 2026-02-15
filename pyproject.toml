@@ -10,7 +10,11 @@ documentation = "https://github.com/microbiomedata/nmdc-orcid-creditor"
 keywords = ["orcid", "credit"]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+# Note: The only reason we disallow 3.14 is that the GitHub Actions workflow that runs the tests
+#       is (for some reason I don't know) using PyO3 version 0.24.1 (which is _not_ the newest)
+#       and that version of PyO3 does not support Python 3.14.
+#       Reference: https://pyo3.rs/v0.28.0/changelog.html
+python = "^3.12,<3.14"
 fastapi = { extras = ["standard"], version = "^0.115.0" }
 # We use `pydantic-settings` to access environment variables.
 # Docs: https://fastapi.tiangolo.com/advanced/settings/#pydantic-settings
