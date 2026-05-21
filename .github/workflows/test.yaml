@@ -20,13 +20,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out commit  # Docs: https://github.com/actions/checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Set up Python  # Docs: https://github.com/actions/setup-python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version-file: "pyproject.toml"  # reads version requirement from `pyproject.toml`
       - name: Install Poetry  # Docs: https://github.com/snok/install-poetry
-        uses: snok/install-poetry@v1
+        uses: snok/install-poetry@76e04a911780d5b312d89783f7b1cd627778900a # v1.4.1
       - name: Install dependencies  # Docs: https://python-poetry.org/docs/cli/#install
         run: poetry install --no-interaction
       - name: Run tests
